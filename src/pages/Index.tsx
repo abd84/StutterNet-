@@ -198,24 +198,20 @@ const Index = () => {
 
                 {/* Upload Option */}
                 <button
-                  disabled
-                  className="group relative h-[160px] sm:h-[240px] w-full sm:w-[200px] lg:w-[240px] max-w-[340px] sm:max-w-none rounded-[20px] md:rounded-[24px] border border-white/10 p-1 opacity-60 cursor-not-allowed"
+                  onClick={() => setInputMode("upload")}
+                  className="group relative h-[160px] sm:h-[240px] w-full sm:w-[200px] lg:w-[240px] max-w-[340px] sm:max-w-none rounded-[20px] md:rounded-[24px] border border-white/10 p-1 transition-all duration-500 hover:scale-[1.02] sm:hover:scale-[1.05] hover:rotate-1"
                 >
-                  {/* Coming Soon Badge */}
-                  <div className="absolute top-3 right-3 px-3 py-1 bg-orange-500/20 text-orange-400 text-xs font-semibold rounded-full border border-orange-500/30 z-10">
-                    Coming Soon
-                  </div>
-
                   {/* Glass Background */}
                   <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent backdrop-blur-2xl rounded-[18px] md:rounded-[22px]" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-secondary/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[18px] md:rounded-[22px]" />
 
                   <div className="relative h-full flex flex-col items-center justify-center space-y-3 md:space-y-4 p-3 md:p-4">
-                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-secondary/10 flex items-center justify-center">
-                      <Upload className="w-6 h-6 md:w-8 md:h-8 text-secondary/50" />
+                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-secondary/10 flex items-center justify-center group-hover:bg-secondary/20 group-hover:shadow-[0_0_40px_rgba(139,92,246,0.4)] transition-all duration-500">
+                      <Upload className="w-6 h-6 md:w-8 md:h-8 text-secondary group-hover:scale-110 transition-transform duration-500" />
                     </div>
                     <div className="text-center space-y-1">
-                      <h3 className="text-xl md:text-2xl font-bold text-white/50">Upload File</h3>
-                      <p className="text-base md:text-lg font-urdu text-white/40">فائل اپ لوڈ</p>
+                      <h3 className="text-xl md:text-2xl font-bold text-white group-hover:text-secondary transition-colors">Upload File</h3>
+                      <p className="text-base md:text-lg font-urdu text-white/60">فائل اپ لوڈ</p>
                     </div>
                   </div>
                 </button>
