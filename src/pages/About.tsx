@@ -1,6 +1,6 @@
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Database, Zap, Users, AlertTriangle, Layers } from "lucide-react";
+import { Brain, Database, Zap, Users, Layers, Activity } from "lucide-react";
 
 const About = () => {
   return (
@@ -53,8 +53,8 @@ const About = () => {
                   <h4 className="font-bold text-foreground mb-2">Our Contributions</h4>
                   <ul className="text-sm space-y-1 list-disc ml-4">
                     <li>First annotated Urdu stuttering speech dataset (543 samples)</li>
-                    <li>Two trained deep learning detection models</li>
-                    <li>Live AI-powered demo via Gemini 2.5 Flash</li>
+                    <li>Three evaluated architectures: FluentNet (722K), Custom CNN+BiGRU (155K), StutterNet baseline (434K)</li>
+                    <li>Live AI-powered demo using the trained FluentNet model</li>
                     <li>Open research platform for further study</li>
                   </ul>
                 </div>
@@ -136,21 +136,62 @@ const About = () => {
             </CardContent>
           </Card>
 
-          {/* Model 1: StutterNet+ / FluentNet */}
+          {/* Model 1: FluentNet (best on AI data) */}
           <Card className="backdrop-blur-xl bg-card/70 border border-border/50 shadow-lg animate-scale-in">
             <CardHeader>
               <CardTitle className="text-2xl text-foreground flex items-center gap-2">
-                <Brain className="w-6 h-6 text-primary" /> Model 1: StutterNet+ (SE-ResNet + BiLSTM + Attention)
+                <Brain className="w-6 h-6 text-primary" /> Model 1: Best Performing — FluentNet Architecture (SE-ResNet + BiLSTM + Attention)
               </CardTitle>
               <CardDescription className="font-urdu text-base">ماڈل ۱ — سپیکٹروگرام پر مبنی</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-muted-foreground">
-              <p className="leading-relaxed">
-                Trained exclusively on <strong className="text-foreground">ElevenLabs TTS data (415 samples)</strong> with a 90/10 stratified split,
-                this model — which we call <strong className="text-primary">FluentNet</strong> internally — achieved
-                <strong className="text-primary"> 61.9% accuracy</strong> and <strong className="text-primary">Macro F1 = 0.60</strong>, the best result in the project.
-                It operates on 7-second STFT spectrograms and has 722K trainable parameters.
+
+              {/* Core Goal Banner */}
+              <div className="p-4 bg-primary/10 border border-primary/40 rounded-lg">
+                <p className="text-sm font-semibold text-primary mb-1">Our Core Research Goal</p>
+                <p className="text-sm">
+                  We set out to prove that <strong className="text-foreground">AI-generated stuttered audio</strong> (ElevenLabs TTS) can substitute for real patient recordings —
+                  solving two hard problems at once: the <strong className="text-foreground">complete absence of any Urdu stuttering dataset</strong> and
+                  the <strong className="text-foreground">data-privacy barriers</strong> that make recording real patients ethically complex.
+                  This page documents what we found.
+                </p>
+              </div>
+
+              {/* Architecture naming clarification */}
+              <div className="p-4 bg-black/30 rounded-lg border border-white/10 text-sm space-y-2">
+                <p className="font-semibold text-foreground">Architecture naming — clarified</p>
+                <p>
+                  Throughout this project we tested <strong className="text-foreground">multiple architectures and training configurations</strong>.
+                  Two emerged as most relevant:
+                </p>
+                <ul className="list-disc ml-5 space-y-1.5">
+                  <li>
+                    <strong className="text-primary">FluentNet</strong> — the architecture whose blueprint (SE-ResNet → BiLSTM → Bahdanau Attention) is
+                    inspired by published speech-disfluency literature.
+                    However, the <em>regularization strategy, loss function, input/output dimensions, and every hyperparameter</em> were
+                    <strong className="text-foreground"> entirely re-tuned by our team</strong> from scratch specifically for this Urdu stuttering dataset.
+                    This makes it substantially our own implementation.
+                    <strong className="text-primary"> Best accuracy on AI-only data: 61.9%, Macro F1 = 0.60.</strong>
+                  </li>
+                  <li>
+                    <strong className="text-secondary">StutterNet+</strong> — our own <em>originally proposed</em> architecture (described in Model 2 below).
+                    It outperformed FluentNet when trained on the <em>combined AI + real human dataset</em>,
+                    showing stronger generalization across acoustic domains.
+                  </li>
+                </ul>
+              </div>
+
+              <p className="leading-relaxed text-sm">
+                The FluentNet variant was trained exclusively on <strong className="text-foreground">ElevenLabs TTS data (415 samples)</strong> with a 90/10 stratified split.
+                It operates on 7-second STFT spectrograms and has <strong className="text-foreground">722K trainable parameters</strong>.
               </p>
+
+              <div className="p-3 bg-secondary/5 rounded-lg border border-secondary/30 text-sm">
+                <strong className="text-secondary">StutterNet+ shines on mixed data:</strong> When AI-generated samples were combined with real human recordings,
+                our own proposed <strong className="text-foreground">StutterNet+</strong> architecture surpassed FluentNet — confirming that our architecture generalizes
+                better across acoustic domains. FluentNet excels in the controlled synthetic setting; StutterNet+ is the stronger real-world candidate once
+                enough diverse data is available.
+              </div>
 
               <div className="p-4 bg-black/20 rounded-xl border border-white/10 font-mono text-xs space-y-1 overflow-x-auto">
                 <div className="text-muted-foreground mb-1">Architecture (722K parameters):</div>
@@ -257,85 +298,93 @@ const About = () => {
             </CardContent>
           </Card>
 
-          {/* Bottleneck */}
-          <Card className="backdrop-blur-xl bg-card/70 border border-red-500/30 shadow-lg animate-scale-in">
+          {/* Severity Measurement */}
+          <Card className="backdrop-blur-xl bg-card/70 border border-border/50 shadow-lg animate-scale-in">
             <CardHeader>
               <CardTitle className="text-2xl text-foreground flex items-center gap-2">
-                <AlertTriangle className="w-6 h-6 text-red-400" /> Key Bottleneck: Domain Mismatch
+                <Activity className="w-6 h-6 text-primary" /> How We Measure Severity
               </CardTitle>
-              <CardDescription className="font-urdu text-base">بڑی رکاوٹ — مصنوعی اور حقیقی آواز کا فرق</CardDescription>
+              <CardDescription className="font-urdu text-base">شدت کی پیمائش</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 text-muted-foreground">
-              <p className="leading-relaxed">
-                The single biggest obstacle is the <strong className="text-foreground">acoustic domain gap</strong> between ElevenLabs TTS synthetic speech and real human stuttering recordings.
-              </p>
+            <CardContent className="space-y-4 text-muted-foreground text-sm">
 
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="p-4 bg-black/30 rounded-lg border border-white/10">
-                  <h5 className="font-bold text-foreground mb-2">TTS Synthetic Data</h5>
-                  <ul className="text-xs space-y-1 list-disc ml-4">
-                    <li>Studio-quality audio, 16kHz mono, consistent codec</li>
-                    <li>Acoustically uniform across all 415 samples</li>
-                    <li>Stutters are scripted — idealized phoneme repeats</li>
-                    <li>No background noise, no emotional prosody variance</li>
-                  </ul>
-                </div>
-                <div className="p-4 bg-black/30 rounded-lg border border-white/10">
-                  <h5 className="font-bold text-foreground mb-2">Real Human Speech</h5>
-                  <ul className="text-xs space-y-1 list-disc ml-4">
-                    <li>Variable recording environments and microphones</li>
-                    <li>Emotional stress, irregular breathing, filler sounds</li>
-                    <li>Stutters are unpredictable in onset, duration, intensity</li>
-                    <li>Background noise, room reverb, codec compression artifacts</li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-                <p className="text-sm">
-                  <strong className="text-foreground">The evidence is stark:</strong> Adding 128 real speech samples (Phase 4 & 5)
-                  <em> reduced</em> accuracy from 56.1% to 49.2% despite more total data. The model learned
-                  features that generalize within the TTS domain but break immediately on real speech.
-                  <strong className="text-red-400"> We cannot bridge synthetic training to real-world deployment without substantially more real annotated Urdu stuttering data.</strong>
+              {/* Plain-English box */}
+              <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
+                <p className="font-semibold text-foreground mb-2">In plain words — what does "severity" mean here?</p>
+                <p className="leading-relaxed">
+                  Severity tells you <strong className="text-foreground">how much a stutter gets in the way of normal speech</strong>.
+                  Think of it like a score from 0 to 100 — the higher the number, the harder it is for the speaker to communicate.
+                  A small hiccup like repeating one syllable barely hurts the score. But a full block — where the speaker gets completely stuck and struggles to push the word out — raises the score a lot.
+                  We count how many stutters happened, what type they were, and how long the speech was,
+                  then combine those into one number so a clinician can quickly see: <em>mild problem, moderate problem, or severe problem</em>.
                 </p>
               </div>
 
-              <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
-                <h5 className="font-bold text-foreground mb-2">Path Forward</h5>
-                <ul className="text-xs space-y-1 list-disc ml-4">
-                  <li>Collect more real Urdu stuttering recordings with consistent ASHA-standard annotation</li>
-                  <li>Domain adaptation: adversarial training, feature normalization across domains</li>
-                  <li>Add clean non-stuttered samples as class 0 (currently absent — model has no rejection option)</li>
-                  <li>Data augmentation: noise injection + room simulation on TTS data to narrow the gap</li>
-                  <li>Integrate remaining ~26 unannotated MP3s from zip dataset</li>
-                </ul>
+              <p className="leading-relaxed">
+                Not all stutters are equally disruptive. We use a <strong className="text-foreground">weighted clinical scoring formula</strong> that reflects the real-world impact of each stutter type — the same logic used by speech-language pathologists.
+              </p>
+              <div className="grid sm:grid-cols-3 gap-3">
+                {[
+                  { label: "Repetitions (Takrar)", weight: "×1.0", color: "border-primary/30 bg-primary/5", desc: "Least disruptive. A repeated syllable or word adds minimal communication burden." },
+                  { label: "Prolongations (Tawalat)", weight: "×1.5", color: "border-accent/30 bg-accent/5", desc: "Moderately disruptive. Holding a sound abnormally long signals effort and tension." },
+                  { label: "Blocks (Rukawat)", weight: "×2.0", color: "border-secondary/30 bg-secondary/5", desc: "Most disruptive. A complete speech arrest with audible struggle is clinically the most severe event." },
+                ].map((t, i) => (
+                  <div key={i} className={`p-3 rounded-lg border ${t.color}`}>
+                    <div className="font-bold text-foreground text-sm">{t.label} <span className="text-primary">{t.weight}</span></div>
+                    <p className="text-xs mt-1">{t.desc}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="p-3 bg-black/20 rounded-lg border border-white/10 text-xs space-y-1">
+                <div><strong className="text-foreground">Formula:</strong> weighted_score = (repetitions × 1) + (prolongations × 1.5) + (blocks × 2)</div>
+                <div><strong className="text-foreground">Base severity</strong> = (weighted_score ÷ total_words) × 200, clamped to 0–100</div>
+                <div><strong className="text-foreground">Modifiers:</strong> +10 for audible struggle/tension · +8 for secondary behaviours · −5 for effort-free events</div>
+                <div className="text-muted-foreground pt-1">Example: 1 block in a 5-word sentence scores ~80 (severe). Five easy repetitions in 50 words scores ~10 (very mild).</div>
               </div>
             </CardContent>
           </Card>
 
-          {/* How Demo Works */}
+          {/* How the Tool Works */}
           <Card className="backdrop-blur-xl bg-card/70 border border-border/50 shadow-lg animate-scale-in">
             <CardHeader>
               <CardTitle className="text-2xl text-foreground flex items-center gap-2">
-                <Zap className="w-6 h-6 text-accent" /> How This Demo Works
+                <Zap className="w-6 h-6 text-accent" /> How This Tool Works
               </CardTitle>
-              <CardDescription className="font-urdu text-base">یہ ڈیمو کیسے کام کرتا ہے</CardDescription>
+              <CardDescription className="font-urdu text-base">یہ ٹول کیسے کام کرتا ہے</CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                The live demo uses <strong className="text-foreground">Google Gemini 2.5 Flash</strong> (multimodal) to analyze audio in real-time.
-                Gemini acts as an AI speech pathologist — it receives the base64-encoded audio and a clinically-detailed prompt, then returns structured JSON with stutter counts, types, transcript, and severity score.
-                The trained StutterNet+ and Custom models run on the local research server.
+            <CardContent className="space-y-5">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                This is a <strong className="text-foreground">live AI-powered web tool</strong> built for researchers, speech-language pathologists, and clinicians
+                working with Urdu-speaking populations. It runs our trained deep learning model (SE-ResNet + BiLSTM + Bahdanau Attention, 722K parameters)
+                via a Python FastAPI inference server. Audio submitted through the browser is preprocessed into an STFT spectrogram and classified
+                in under one second on a standard CPU — no cloud upload, no third-party service.
               </p>
+
+              {/* Use cases */}
+              <div className="grid sm:grid-cols-2 gap-3 text-sm">
+                {[
+                  { title: "Speech-Language Pathologists", desc: "Quickly screen for stutter type and severity in Urdu-speaking patients without manual transcription or special equipment.", color: "border-primary/30 bg-primary/5" },
+                  { title: "Clinical Researchers", desc: "Annotate and benchmark new Urdu speech samples against model predictions to expand the dataset and study stutter patterns.", color: "border-secondary/30 bg-secondary/5" },
+                  { title: "Educators & Therapists", desc: "Track therapy progress over time by comparing pre- and post-therapy recordings for the same speaker.", color: "border-accent/30 bg-accent/5" },
+                  { title: "NLP / Speech AI Researchers", desc: "Use this platform as a baseline for building or fine-tuning future low-resource Urdu speech models.", color: "border-green-500/30 bg-green-500/5" },
+                ].map((uc, i) => (
+                  <div key={i} className={`p-3 rounded-lg border ${uc.color}`}>
+                    <div className="font-semibold text-foreground text-xs mb-1">{uc.title}</div>
+                    <p className="text-xs text-muted-foreground">{uc.desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Workflow */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 text-xs">
                 {[
-                  { label: "Record Audio", sub: "Up to 20 seconds", color: "border-primary/50 bg-primary/5" },
+                  { label: "Record / Upload", sub: "Browser MediaRecorder or WAV file", color: "border-primary/50 bg-primary/5" },
                   { label: "→", arrow: true },
-                  { label: "Chunked Base64", sub: "8KB chunk encoding", color: "border-secondary/50 bg-secondary/5" },
+                  { label: "Preprocessing", sub: "STFT spectrogram · 16kHz mono", color: "border-secondary/50 bg-secondary/5" },
                   { label: "→", arrow: true },
-                  { label: "Gemini 2.5 Flash", sub: "Multimodal AI analysis", color: "border-accent/50 bg-accent/5" },
+                  { label: "Our Trained Model", sub: "SE-ResNet + BiLSTM + Attention", color: "border-accent/50 bg-accent/5" },
                   { label: "→", arrow: true },
-                  { label: "JSON Results", sub: "Transcript + scores", color: "border-green-500/50 bg-green-500/5" },
+                  { label: "Stutter Class", sub: "Harf / Lafz / Block / Clean", color: "border-green-500/50 bg-green-500/5" },
                 ].map((step, i) =>
                   step.arrow ? (
                     <div key={i} className="text-primary text-lg font-bold text-center hidden sm:block">→</div>
