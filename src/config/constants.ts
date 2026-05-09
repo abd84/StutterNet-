@@ -12,23 +12,43 @@ export const APP_CONFIG = {
 
 export const DEMO_DATASET = [
   {
-    id: "T10-Sy",
-    filename: "T10-Sy.mp3",
+    id: "HARF_I017",
+    filename: "HARF_I017.wav",
     label: "Syllable Repetition",
     labelUrdu: "حرف کی تکرار",
     description: "Pure syllable-based stuttering — involuntary phoneme-level repetition",
-    duration: 4,
+    duration: 7,
     stutterType: "Syllable (Sy)",
-    severity: "Moderate",
+    severity: "Mild",
     speaker: "Male Speaker A",
-    stutterCount: 2,
-    annotatedTranscript: "اچھا [حرف]م... م...[/حرف] مجھے اتنا مزہ نہیں آ رہا",
-    plainTranscript: "اچھا مجھے اتنا مزہ نہیں آ رہا",
+    stutterCount: 1,
+    annotatedTranscript: "بھائی یہ بس کہاں جاتی ہے کیا یہ صدر تک [حرف]ج-جاتی[/حرف] ہے یا مجھے دوسری بس لینی ہوگی",
+    plainTranscript: "بھائی یہ بس کہاں جاتی ہے کیا یہ صدر تک جاتی ہے یا مجھے دوسری بس لینی ہوگی",
     stutterMarkers: [
-      { start: 1, end: 2, type: "syllable", label: "م... م..." }
+      { start: 10, end: 11, type: "syllable", label: "ج-جاتی" }
     ],
-    totalWords: 10,
-    disfluencyCount: 2,
+    totalWords: 18,
+    disfluencyCount: 1,
+    annotationStyle: "ASHA Standard"
+  },
+  {
+    id: "LAFZ_009",
+    filename: "LAFZ_009.wav",
+    label: "Word-level Stuttering",
+    labelUrdu: "لفظ کی تکرار",
+    description: "Whole-word repetition — same word repeated involuntarily multiple times",
+    duration: 6,
+    stutterType: "Word (Lafz)",
+    severity: "Mild",
+    speaker: "Male Speaker B",
+    stutterCount: 1,
+    annotatedTranscript: "یہ قمیض بہت اچھی ہے لیکن کیا اس میں [لفظ]سائز سائز[/لفظ] بڑا بھی ملتا ہے ایکسٹرا لارج میں",
+    plainTranscript: "یہ قمیض بہت اچھی ہے لیکن کیا اس میں سائز بڑا بھی ملتا ہے ایکسٹرا لارج میں",
+    stutterMarkers: [
+      { start: 8, end: 9, type: "word_repetition", label: "سائز سائز" }
+    ],
+    totalWords: 17,
+    disfluencyCount: 1,
     annotationStyle: "ASHA Standard"
   },
   {
@@ -40,7 +60,7 @@ export const DEMO_DATASET = [
     duration: 8,
     stutterType: "Pause (-p)",
     severity: "Moderate",
-    speaker: "Male Speaker B",
+    speaker: "Male Speaker C",
     stutterCount: 1,
     annotatedTranscript: "ہمیں اس پروجیکٹ کو [بلاک]—[/بلاک] اگلے مہینے تک ہر حال میں مکمل کرنا ہے، ورنہ بہت مسئلہ ہو گا",
     plainTranscript: "ہمیں اس پروجیکٹ کو اگلے مہینے تک ہر حال میں مکمل کرنا ہے، ورنہ بہت مسئلہ ہو گا",
@@ -52,26 +72,6 @@ export const DEMO_DATASET = [
     annotationStyle: "ASHA Standard"
   },
   {
-    id: "T30-w",
-    filename: "T30-w.mp3",
-    label: "Word-level Stuttering",
-    labelUrdu: "لفظ کی تکرار",
-    description: "Whole-word repetition — same word repeated involuntarily multiple times",
-    duration: 7,
-    stutterType: "Word (-w)",
-    severity: "Severe",
-    speaker: "Male Speaker A",
-    stutterCount: 3,
-    annotatedTranscript: "ہمیں [لفظ]وہاں وہاں وہاں[/لفظ] جانا ہوگا، اس سے پہلے کہ بہت دیر ہو جائے",
-    plainTranscript: "ہمیں وہاں جانا ہوگا، اس سے پہلے کہ بہت دیر ہو جائے",
-    stutterMarkers: [
-      { start: 1, end: 3, type: "word_repetition", label: "وہاں وہاں وہاں" }
-    ],
-    totalWords: 16,
-    disfluencyCount: 3,
-    annotationStyle: "ASHA Standard"
-  },
-  {
     id: "T61-w",
     filename: "T61-w.mp3",
     label: "Mixed Stuttering",
@@ -80,7 +80,7 @@ export const DEMO_DATASET = [
     duration: 8,
     stutterType: "Mixed (Sy+p+w)",
     severity: "Severe",
-    speaker: "Male Speaker C",
+    speaker: "Male Speaker D",
     stutterCount: 0,
     annotatedTranscript: "",
     plainTranscript: "",
@@ -93,46 +93,46 @@ export const DEMO_DATASET = [
 ];
 
 export const DEMO_ANALYSIS_RESULTS: Record<string, any | unknown> = {
-  "T10-Sy": {
-    severityScore: 52,
-    totalWords: 10,
-    disfluencyCount: 2,
-    avgDuration: 1.8,
-    confidence: 94,
+  "HARF_I017": {
+    severityScore: 6,
+    totalWords: 18,
+    disfluencyCount: 1,
+    avgDuration: 0.4,
+    confidence: 98,
     stutterTypes: [
-      { type: "Takrar (Repetitions)", urdu: "تکرار", count: 2, color: "bg-primary", percent: 100 },
+      { type: "Takrar (Repetitions)", urdu: "تکرار", count: 1, color: "bg-primary", percent: 100 },
       { type: "Tawalat (Prolongations)", urdu: "طوالت", count: 0, color: "bg-accent", percent: 0 },
       { type: "Rukawat (Blocks)", urdu: "رکاوٹ", count: 0, color: "bg-secondary", percent: 0 }
     ],
-    transcript: "اچھا [حرف] م... م... [/حرف] مجھے اتنا مزہ نہیں آ رہا.",
-    highlightedWords: [1, 2]
+    transcript: "بھائی یہ بس کہاں جاتی ہے کیا یہ صدر تک *ج-جاتی* ہے یا مجھے دوسری بس لینی ہوگی",
+    highlightedWords: [10]
+  },
+  "LAFZ_009": {
+    severityScore: 6,
+    totalWords: 17,
+    disfluencyCount: 1,
+    avgDuration: 0.5,
+    confidence: 98,
+    stutterTypes: [
+      { type: "Takrar (Repetitions)", urdu: "تکرار", count: 1, color: "bg-primary", percent: 100 },
+      { type: "Tawalat (Prolongations)", urdu: "طوالت", count: 0, color: "bg-accent", percent: 0 },
+      { type: "Rukawat (Blocks)", urdu: "رکاوٹ", count: 0, color: "bg-secondary", percent: 0 }
+    ],
+    transcript: "یہ قمیض بہت اچھی ہے لیکن کیا اس میں *سائز سائز* بڑا بھی ملتا ہے ایکسٹرا لارج میں",
+    highlightedWords: [8, 9]
   },
   "T20-p": {
-    severityScore: 45,
-    totalWords: 15,
+    severityScore: 22,
+    totalWords: 19,
     disfluencyCount: 1,
-    avgDuration: 2.1,
-    confidence: 88,
+    avgDuration: 1.2,
+    confidence: 95,
     stutterTypes: [
       { type: "Takrar (Repetitions)", urdu: "تکرار", count: 0, color: "bg-primary", percent: 0 },
       { type: "Tawalat (Prolongations)", urdu: "طوالت", count: 0, color: "bg-accent", percent: 0 },
       { type: "Rukawat (Blocks)", urdu: "رکاوٹ", count: 1, color: "bg-secondary", percent: 100 }
     ],
-    transcript: "میں نے اس کا [حرف] ..... [/حرف] انتظار کیا.",
+    transcript: "ہمیں اس پروجیکٹ کو *—* اگلے مہینے تک ہر حال میں مکمل کرنا ہے ورنہ بہت مسئلہ ہو گا",
     highlightedWords: [4]
-  },
-  "T30-w": {
-    severityScore: 78,
-    totalWords: 12,
-    disfluencyCount: 3,
-    avgDuration: 1.2,
-    confidence: 91,
-    stutterTypes: [
-      { type: "Takrar (Repetitions)", urdu: "تکرار", count: 3, color: "bg-primary", percent: 100 },
-      { type: "Tawalat (Prolongations)", urdu: "طوالت", count: 0, color: "bg-accent", percent: 0 },
-      { type: "Rukawat (Blocks)", urdu: "رکاوٹ", count: 0, color: "bg-secondary", percent: 0 }
-    ],
-    transcript: "وہ [لفظ] کل کل کل [/لفظ] آئے گا.",
-    highlightedWords: [1, 2, 3]
   }
 };

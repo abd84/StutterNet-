@@ -145,14 +145,14 @@ const Index = () => {
         </svg>
       </div>
 
-      <div className={cn("relative z-10 flex flex-col", showResults ? "min-h-screen" : "h-screen overflow-hidden")}>
+      <div className={cn("relative z-10 flex flex-col", showResults ? "min-h-screen" : "min-h-screen sm:h-screen sm:overflow-hidden")}>
         <Navigation />
 
-        <main className="flex-grow container mx-auto px-6 flex flex-col items-center justify-center">
+        <main className="flex-grow container mx-auto px-6 flex flex-col items-center justify-center sm:justify-center">
 
           {/* Hero Section */}
           {!inputMode && !showResults && (
-            <div className="w-full h-full flex flex-col items-center justify-center space-y-8 py-4">
+            <div className="w-full flex flex-col items-center justify-center space-y-6 py-6 sm:py-4 sm:h-full">
 
               <div className="text-center relative z-10 animate-fade-in space-y-4">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-2 animate-fade-in">
