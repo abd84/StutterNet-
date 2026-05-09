@@ -6,7 +6,7 @@ import { Activity, Brain, Zap, Play, Pause, Volume2, RefreshCw } from "lucide-re
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AudioAnalysisResult } from "@/lib/gemini";
-import { DEMO_ANALYSIS_RESULTS } from "@/config/constants";
+import { DEMO_ANALYSIS_RESULTS, DEMO_DATASET } from "@/config/constants";
 
 interface AnalysisResultsProps {
   audioUrl?: string;
@@ -20,67 +20,8 @@ const AnalysisResults = ({ audioUrl, duration = 45, selectedDemo, analysisData }
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  console.log('🔍 AnalysisResults rendered with props:', { audioUrl, duration, selectedDemo, analysisData });
-  console.log('📊 analysisData type:', typeof analysisData, 'value:', analysisData);
-
-  // Demo data based on selected sample with real transcriptions
-  const demoData: Record<string, AudioAnalysisResult> = {
-    "T10-Sy": {
-      severityScore: 52,
-      totalWords: 10,
-      disfluencyCount: 2,
-      avgDuration: 1.8,
-      confidence: 94,
-      stutterTypes: [
-        { type: "Takrar (Repetitions)", urdu: "تکرار", count: 2, color: "bg-primary", percent: 100 },
-        { type: "Tawalat (Prolongations)", urdu: "طوالت", count: 0, color: "bg-accent", percent: 0 },
-        { type: "Rukawat (Blocks)", urdu: "رکاوٹ", count: 0, color: "bg-secondary", percent: 0 }
-      ],
-      transcript: "اچھا [حرف] م... م... [/حرف] مجھے اتنا مزہ نہیں آ رہا.",
-      highlightedWords: [1, 2]
-    },
-    "T20-p": {
-      severityScore: 48,
-      totalWords: 19,
-      disfluencyCount: 1,
-      avgDuration: 2.1,
-      confidence: 96,
-      stutterTypes: [
-        { type: "Takrar (Repetitions)", urdu: "تکرار", count: 0, color: "bg-primary", percent: 0 },
-        { type: "Tawalat (Prolongations)", urdu: "طوالت", count: 0, color: "bg-accent", percent: 0 },
-        { type: "Rukawat (Blocks)", urdu: "رکاوٹ", count: 1, color: "bg-secondary", percent: 100 }
-      ],
-      transcript: "ہمیں اس پروجیکٹ کو [بلاک] [/بلاک] اگلے مہینے تک ہر حال میں مکمل کرنا ہے، ورنہ بہت مسئلہ ہو گا۔",
-      highlightedWords: [4, 5]
-    },
-    "T30-w": {
-      severityScore: 58,
-      totalWords: 16,
-      disfluencyCount: 2,
-      avgDuration: 2.3,
-      confidence: 97,
-      stutterTypes: [
-        { type: "Takrar (Repetitions)", urdu: "تکرار", count: 2, color: "bg-primary", percent: 100 },
-        { type: "Tawalat (Prolongations)", urdu: "طوالت", count: 0, color: "bg-accent", percent: 0 },
-        { type: "Rukawat (Blocks)", urdu: "رکاوٹ", count: 0, color: "bg-secondary", percent: 0 }
-      ],
-      transcript: "ہمیں وہا [لفظ] ابھی ابھی [/لفظ] جانا ہوگا، اس سے پہلے کہ بہت دیر ہو جائے",
-      highlightedWords: [2, 3, 4]
-    },
-    "T61-w": {
-      severityScore: null,
-      totalWords: null,
-      disfluencyCount: null,
-      avgDuration: null,
-      confidence: null,
-      stutterTypes: [],
-      transcript: "",
-      highlightedWords: [],
-      isComingSoon: true,
-      message: "Mixed Stutter Analysis - Coming Soon",
-      urduMessage: "مخلوط لکنت کا تجزیہ - جلد آرہا ہے"
-    }
-  };
+  // Look up the demo sample metadata (label, stutter subtype) from DEMO_DATASET
+  const demoSampleMeta = selectedDemo ? DEMO_DATASET.find(s => s.id === selectedDemo) : null;
 
   // Use real analysis data if available, otherwise use demo data or default
   const data = analysisData || (selectedDemo && DEMO_ANALYSIS_RESULTS[selectedDemo]) || {
@@ -98,7 +39,6 @@ const AnalysisResults = ({ audioUrl, duration = 45, selectedDemo, analysisData }
     highlightedWords: [2, 3, 8]
   };
 
-  console.log('📊 Using analysis data:', data);
 
   const { severityScore, totalWords, disfluencyCount, avgDuration, confidence, stutterTypes, transcript, highlightedWords, isComingSoon, message, urduMessage } = data as any;
 
@@ -337,6 +277,15 @@ const AnalysisResults = ({ audioUrl, duration = 45, selectedDemo, analysisData }
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Stutter subtype badge — shown in demo mode */}
+            {demoSampleMeta && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
+                <span className="text-xs text-muted-foreground">Detected Subtype:</span>
+                <span className="text-sm font-bold text-primary">{demoSampleMeta.label}</span>
+                <span className="text-sm font-urdu text-primary/80 mr-auto">{demoSampleMeta.labelUrdu}</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">{demoSampleMeta.stutterType}</span>
+              </div>
+            )}
             {stutterTypes && stutterTypes.map((stutter: { type: string, urdu: string, count: number, color: string, percent: number }, index: number) => (
               <div key={index} className="space-y-2 group">
                 <div className="flex items-center justify-between">
@@ -405,8 +354,10 @@ const AnalysisResults = ({ audioUrl, duration = 45, selectedDemo, analysisData }
             <p className="text-foreground leading-relaxed text-lg mb-4" dir="rtl" style={{ fontFamily: 'Noto Nastaliq Urdu, serif', lineHeight: '2.5' }}>
               {transcript.split(" ").map((word: string, i: number) => {
                 const isStutter = highlightedWords?.includes(i) || false;
-                const isUrduWord = /[\u0600-\u06FF]/.test(word);
-                
+                // Strip Gemini asterisk markers (*word*) before display
+                const cleanWord = word.replace(/^\*|\*$/g, '');
+                const isUrduWord = /[\u0600-\u06FF]/.test(cleanWord);
+
                 return (
                   <span
                     key={i}
@@ -417,14 +368,14 @@ const AnalysisResults = ({ audioUrl, duration = 45, selectedDemo, analysisData }
                         : "hover:bg-white/5",
                       isUrduWord ? "font-urdu" : "font-sans"
                     )}
-                    style={{ 
+                    style={{
                       direction: isUrduWord ? 'rtl' : 'ltr',
                       display: 'inline-block',
                       verticalAlign: 'baseline'
                     }}
-                    title={isStutter ? `Detected stutter: ${word}` : ""}
+                    title={isStutter ? `Detected stutter: ${cleanWord}` : ""}
                   >
-                    {word}
+                    {cleanWord}
                     {isStutter && (
                       <span className="absolute -top-1 -right-1 w-2 h-2 bg-accent rounded-full animate-ping opacity-75" />
                     )}
