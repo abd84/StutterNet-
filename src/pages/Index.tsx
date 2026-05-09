@@ -115,13 +115,13 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden font-sans selection:bg-primary/30 selection:text-white">
-      {/* Background Ambience */}
+      {/* Background Ambience — hidden on mobile for performance */}
       <div className="fixed inset-0 bg-gradient-mesh opacity-40 pointer-events-none z-0" />
-      <div className="fixed top-[-20%] right-[-10%] w-[800px] h-[800px] bg-primary/20 rounded-full blur-[150px] pointer-events-none animate-pulse-glow" />
-      <div className="fixed bottom-[-20%] left-[-10%] w-[800px] h-[800px] bg-secondary/20 rounded-full blur-[150px] pointer-events-none animate-pulse-glow" style={{ animationDelay: "1s" }} />
+      <div className="hidden sm:block fixed top-[-20%] right-[-10%] w-[800px] h-[800px] bg-primary/20 rounded-full blur-[150px] pointer-events-none animate-pulse-glow" />
+      <div className="hidden sm:block fixed bottom-[-20%] left-[-10%] w-[800px] h-[800px] bg-secondary/20 rounded-full blur-[150px] pointer-events-none animate-pulse-glow" style={{ animationDelay: "1s" }} />
 
-      {/* Decorative Urdu Background Words & Shapes */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      {/* Decorative Urdu Background Words & Shapes — hidden on mobile for performance */}
+      <div className="hidden sm:block fixed inset-0 pointer-events-none overflow-hidden z-0">
         {/* Original Words */}
         <div className="absolute top-[10%] left-[5%] text-9xl font-urdu text-white/5 rotate-12 blur-sm animate-float" style={{ animationDuration: '20s' }}>آواز</div>
         <div className="absolute top-[20%] right-[10%] text-8xl font-urdu text-primary/5 -rotate-12 blur-[2px] animate-float" style={{ animationDuration: '25s', animationDelay: '2s' }}>تکلم</div>

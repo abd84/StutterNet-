@@ -188,6 +188,34 @@ All colors MUST be HSL.
   }
 }
 
+/* ── Global: smooth scroll + GPU compositing hint ── */
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Mobile performance: disable all heavy animations & blur ── */
+@media (max-width: 640px) {
+  .animate-float,
+  .animate-spin-slow,
+  .animate-spin-reverse-slow,
+  .animate-pulse-glow {
+    animation: none !important;
+  }
+
+  /* Kill expensive backdrop-blur on cards — use solid bg instead */
+  .backdrop-blur-2xl {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background-color: hsl(222 47% 11% / 0.95) !important;
+  }
+
+  .backdrop-blur-xl {
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
