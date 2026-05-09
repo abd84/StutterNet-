@@ -39,16 +39,14 @@ STEP 2 — STUTTER TAXONOMY (ASHA standard, Urdu adapted)
 ═══════════════════════════════════════════
 
 1. Takrar – تکرار (Repetitions)
-   What it sounds like: a sound, syllable, or whole word repeated involuntarily — with a CLEAR AUDIBLE BREAK/RESET between each instance, like beads on a string.
-   Examples: ک-ک-کام (syllable), مجھے مجھے جانا (word), میں چاہتا میں چاہتا ہوں (phrase)
-   Key marker: you can hear each repetition START and STOP distinctly. There is silence or a brief gap between instances.
-   NOT Takrar: if the sound flows continuously without any break, that is Tawalat (see below).
+   What it sounds like: the same sound, syllable, or whole word occurs MORE THAN ONCE. Even if TTS transitions sound smooth, if you count the sound appearing 2+ times — it is Takrar.
+   Examples: ج ج جاتی (syllable), سائز سائز (word), میں چاہتا میں چاہتا ہوں (phrase)
+   Rule: count occurrences. Two or more = Takrar. One stretched occurrence = Tawalat.
 
 2. Tawalat – طوالت (Prolongations)
-   What it sounds like: a SINGLE vowel or consonant held continuously longer than natural (>0.5 seconds) — ONE unbroken sound, just stretched.
-   Examples: سسسسنو، آآآج، ممممما، بکككككك
-   Key marker: it is ONE continuous sound with no internal breaks. The speaker cannot stop mid-hold.
-   CRITICAL DISTINCTION: If you transcribe the same sound appearing multiple times (e.g. "بک بک بک") but the audio is actually a single continuous hold — that is Tawalat, NOT Takrar. Do not split a prolonged sound into repeated tokens. Listen for breaks: no breaks = Tawalat, clear breaks = Takrar.
+   What it sounds like: ONE vowel or consonant held longer than natural (>0.5s). It is a single unbroken sound — not repeated, just stretched.
+   Examples: سسسسنو، آآآج، ممممما
+   Rule: only ONE occurrence of the sound, but it is abnormally long. If the same sound appears twice, that is Takrar not Tawalat.
 
 3. Rukawat – رکاوٹ (Blocks)
    What it sounds like: a complete stop or silent hold before/during a word, then sudden release
@@ -64,8 +62,8 @@ DO NOT count these as stutters:
 
 IMPORTANT — SYNTHETIC/TTS AUDIO:
 This audio may be computer-generated (ElevenLabs TTS). TTS-synthesised stutters sound different from real speech:
-• TTS Takrar (repetition): the syllable or word is clearly repeated with a distinct gap/break between each instance — e.g. "ک ک کام", "مجھے مجھے". You can hear each instance start and stop.
-• TTS Tawalat (prolongation): one sound is held continuously — e.g. "سسسنو", "بکككك". IMPORTANT: if your transcript ends up with the same syllable repeated (e.g. "بک بک بک") but the audio sounds like one continuous held sound with no breaks, correct yourself — that is Tawalat, not Takrar. The transcript token for a prolongation should be the stretched form (e.g. "بکككك"), not split repeated tokens.
+• TTS Takrar (repetition): the sound or word occurs 2+ times — e.g. "ج ج جاتی", "سائز سائز". Count occurrences: two or more = Takrar, even if TTS transitions sound smooth.
+• TTS Tawalat (prolongation): one sound stretched — e.g. "سسسنو". Only classify as Tawalat if the sound occurs exactly ONCE but is abnormally long.
 • TTS Rukawat (block): silent gap (≥0.3s) before word onset, followed by abrupt restart. No audible tension in TTS — detect by silence alone.
 • Do not penalise confidence for clean audio — clean TTS should score 85–100 confidence.
 
