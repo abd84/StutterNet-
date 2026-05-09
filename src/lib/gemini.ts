@@ -23,111 +23,150 @@ export interface AudioAnalysisResult {
 
 // ─── Prompt ────────────────────────────────────────────────────────────────
 
-const SYSTEM_INSTRUCTION = `You are Dr. Ayesha Malik, a senior clinical speech-language pathologist at a research institute specialising exclusively in Urdu fluency disorders. You have 15 years of experience diagnosing and treating stuttering in Urdu-speaking adults and children. Your assessments are used by academic researchers and clinical teams and must be precise, reproducible, and formatted to strict schema. You respond only in structured JSON — never in prose.`;
+const SYSTEM_INSTRUCTION = `You are an expert clinical speech-language pathologist specialising in Urdu fluency disorders and stuttering analysis. You analyse audio recordings of Urdu speech and identify stuttering events with precision. You always respond in valid JSON only — never in prose or markdown.`;
 
-const ANALYSIS_PROMPT = `TASK
-Perform a clinical disfluency analysis on the attached audio recording of Urdu speech. Identify, count, and characterise all stuttering events.
+const ANALYSIS_PROMPT = `STEP 1 — LISTEN FIRST
+Before doing anything else, listen to the entire audio clip. Note:
+- Is there any speech at all?
+- Is the speech in Urdu?
+- Are there any disfluencies (repetitions, prolongations, blocks)?
+- How clear is the audio quality?
+
+Only after fully listening, proceed with the analysis below.
 
 ═══════════════════════════════════════════
-STUTTER TAXONOMY (ASHA standard, Urdu adapted)
+STEP 2 — STUTTER TAXONOMY (ASHA standard, Urdu adapted)
 ═══════════════════════════════════════════
+
 1. Takrar – تکرار (Repetitions)
-   Sound/syllable: ک-ک-کام، مَ-مَ-مَیں
-   Whole-word:     مجھے مجھے جانا ہے
-   Phrase:         میں چاہتا — میں چاہتا ہوں
-   Clinical marker: involuntary, struggle-effort present, not deliberate for emphasis
+   What it sounds like: a sound, syllable, or whole word repeated involuntarily
+   Examples: ک-ک-کام (syllable), مجھے مجھے جانا (word), میں چاہتا میں چاہتا ہوں (phrase)
+   Key marker: speaker does NOT intend the repetition — there is effort or struggle
 
 2. Tawalat – طوالت (Prolongations)
-   Vowel/consonant held >0.5s abnormally: سسسسنو، ممممما، آآآج
-   Clinical marker: audible tension, pitch rise, or effort on release
+   What it sounds like: a vowel or consonant held longer than natural (>0.5 seconds)
+   Examples: سسسسنو، آآآج، ممممما
+   Key marker: unnatural lengthening, often with rising pitch or audible tension on release
 
 3. Rukawat – رکاوٹ (Blocks)
-   Silent articulatory fixation before or mid-word: [silent hold]…کام
-   Clinical marker: visible/audible tension, sudden release, often accompanied by accessory movement (described in audio by struggle sounds)
+   What it sounds like: a complete stop or silent hold before/during a word, then sudden release
+   Examples: [silent hold of 0.5s+]…کام، [tense silence]…بات
+   Key marker: audible tension before or after the silence, not just a natural pause between sentences
 
-NOT STUTTERS — exclude these entirely:
-• Interjections / fillers: اممم، آہ، ہاں
-• Normal non-fluency: sentence restart without struggle
-• Deliberate emphatic repetition (no struggle markers)
-• Background noise or silence without speech
+DO NOT count these as stutters:
+• Filler sounds: اممم، آہ، ہاں، ٹھیک ہے — these are natural speech
+• Normal sentence restarts with no struggle: speaker casually restarts a thought
+• Deliberate emphatic repetition for effect (speaker sounds relaxed, no effort)
+• Silence between sentences or natural pauses at punctuation
+• Background noise, music, or non-speech sounds
+
+IMPORTANT — SYNTHETIC/TTS AUDIO:
+This audio may be computer-generated (ElevenLabs TTS). TTS-synthesised stutters sound different from real speech:
+• TTS Takrar (repetition): the syllable or word is clearly repeated — e.g. "ک ک کام", "مجھے مجھے". It does NOT sound like a prolongation even if the transition is smooth.
+• TTS Rukawat (block): appears as a silent gap (≥0.3s) immediately before a word starts, followed by an abrupt word onset. There is NO audible tension in TTS — detect by the silence alone. Do not classify as Tawalat unless a vowel/consonant is audibly stretched.
+• TTS Tawalat (prolongation): the vowel or consonant is audibly stretched/held — e.g. "سسسنو". This is distinct from a repetition.
+• Do NOT confuse smooth TTS transitions between repeated syllables with prolongations — if the same sound occurs twice in a row, it is a repetition (Takrar), not a prolongation (Tawalat).
+• Do not penalise confidence for clean audio — clean TTS should score 85–100 confidence.
 
 ═══════════════════════════════════════════
-SEVERITY CALIBRATION — WEIGHTED CLINICAL FORMULA
+STEP 3 — SEVERITY FORMULA
 ═══════════════════════════════════════════
-Step 1 — Compute type-weighted event score:
+
+Step 3a — Weighted event score:
   weighted = (takrar_count × 1.0) + (tawalat_count × 1.5) + (rukawat_count × 2.0)
 
-Step 2 — Compute base severity:
-  base = (weighted / max(totalWords, 1)) × 200
-  clamp base to 0–100
+Step 3b — Base severity (use totalWords of the FULL sentence, not counting stutter tokens):
+  base = (weighted / max(totalWords, 1)) × 100
+  Clamp base to 0–100.
 
-Step 3 — Apply clinical modifiers (add to base, then re-clamp to 100):
-  +10  if audible struggle/tension sounds are present (strained voice, laryngeal tension)
-  +8   if secondary behaviours are present (gasping, visible effort sounds, pitch breaks)
-  +5   if the speaker's naturalness is significantly disrupted (long pauses between words)
-  -5   if events are very brief and effort-free (pure easy repetitions, no tension)
+  Quick reference:
+  • 1 repetition in 10 words  → base ≈ 10  (Mild)
+  • 2 repetitions in 8 words  → base ≈ 25  (Mild-Moderate)
+  • 1 block in 6 words        → base ≈ 33  (Moderate)
+  • 3 mixed events in 8 words → base ≈ 44  (Moderate-Severe)
 
-Step 4 — Override rules:
-  • If disfluencyCount = 0 → severityScore = 0 (always, regardless of modifiers)
-  • Even a single rukawat (block) with audible struggle in a short clip must score ≥ 30
-  • A clip with ≥ 4 events of any type must score ≥ 20
+Step 3c — Clinical modifiers (add/subtract, then re-clamp 0–100):
+  +15  audible struggle, strained voice, laryngeal tension heard
+  +10  secondary behaviours: gasping, pitch breaks, audible effort on release
+  +5   speech naturalness severely disrupted (long unexpected pauses mid-word)
+  -10  events are entirely effort-free and very brief (easy relaxed repetitions only)
 
-Return severityScore as a single integer 0–100.
+Step 3d — Override rules:
+  • disfluencyCount = 0  →  severityScore = 0  (hard rule, no exceptions)
+  • Any rukawat (block) with struggle present in a clip under 10 words  →  severityScore ≥ 35
+  • disfluencyCount ≥ 3 in any clip  →  severityScore ≥ 25
 
-═══════════════════════════════════════════
-TRANSCRIPT RULES
-═══════════════════════════════════════════
-• Write every Urdu word actually spoken, including repeated sounds (so "ک-ک-کام" stays in the transcript).
-• Surround each stuttered word or stutter event with asterisks: *ک-ک-کام*
-• If the clip is silent or contains only noise with no speech: transcript = "آڈیو میں کوئی آواز نہیں ملی"
-• If speech is present but fluent (no stutter): transcript = the actual words spoken, disfluencyCount = 0, severityScore = 0
-• totalWords = count of distinct lexical words (ignore repetition tokens as separate words unless they are full word repetitions)
-
-═══════════════════════════════════════════
-highlightedWords
-═══════════════════════════════════════════
-Split the final transcript on spaces. highlightedWords = 0-indexed positions of tokens that are asterisk-wrapped (*...*).
+Severity bands for reference:
+  0       = Fluent
+  1–20    = Very Mild
+  21–40   = Mild
+  41–60   = Moderate
+  61–80   = Severe
+  81–100  = Very Severe
 
 ═══════════════════════════════════════════
-PERCENT FIELD
+STEP 4 — TRANSCRIPT
 ═══════════════════════════════════════════
-For each stutter type:
-  percent = round(count / max(disfluencyCount, 1) * 100)
-The three percent values must sum to 100 when disfluencyCount > 0.
-When disfluencyCount = 0, all percents = 0.
+• Write every word actually spoken in the audio, in the order spoken.
+• Include stutter tokens (e.g. write "ک-ک-کام" not just "کام") so the listener can verify.
+• Wrap ONLY stuttered tokens in asterisks: *ک-ک-کام*
+• Do NOT wrap clean words in asterisks.
+• No speech detected → transcript = "آڈیو میں کوئی آواز نہیں ملی"
+• Speech present but fully fluent → transcript = actual words, no asterisks
+• totalWords = count of meaningful lexical words in the intended sentence (do NOT count repeated stutter tokens as extra words — count the word once)
 
 ═══════════════════════════════════════════
-avgDuration
+STEP 5 — highlightedWords
 ═══════════════════════════════════════════
-Estimate average duration of a single stutter event in seconds (float, 1 decimal).
-Typical ranges: repetitions 0.3–0.8s, prolongations 0.5–2.0s, blocks 0.5–3.0s.
-If no stutters: 0.0
+Split the transcript string on whitespace. highlightedWords = array of 0-based integer positions of all tokens that are wrapped in asterisks (*token*).
+Example: transcript "میں *ک-ک-کام* کرتا ہوں" → split → ["میں","*ک-ک-کام*","کرتا","ہوں"] → highlightedWords = [1]
 
 ═══════════════════════════════════════════
-confidence
+STEP 6 — PERCENT
 ═══════════════════════════════════════════
-Your overall confidence in this classification (0–100):
-  90–100: clear speech, unambiguous events
-  70–89:  some background noise or mild ambiguity
-  50–69:  noisy or very short clip
-  <50:    speech barely intelligible
+For each type: percent = round(count / max(disfluencyCount, 1) × 100)
+All three percents must sum exactly to 100 when disfluencyCount > 0.
+Adjust the largest value if rounding causes drift.
+When disfluencyCount = 0: all percents = 0.
+
+═══════════════════════════════════════════
+STEP 7 — avgDuration
+═══════════════════════════════════════════
+Estimate the average duration in seconds of a single stutter event based on what you heard.
+Use these anchors:
+  Easy repetition (1 extra iteration): 0.3s
+  Multiple repetitions or prolongation: 0.5–1.0s
+  Block with tension: 0.8–2.0s
+  No stutters: 0.0
+
+═══════════════════════════════════════════
+STEP 8 — confidence
+═══════════════════════════════════════════
+Your confidence in the CLASSIFICATION (not audio quality):
+  85–100: speech is clear, you can hear each word distinctly, stutter events (if any) are unambiguous
+  65–84:  some mild ambiguity — one event could be either a stutter or normal disfluency
+  40–64:  significant ambiguity — multiple events hard to classify, or very short clip
+  <40:    speech barely intelligible or too noisy to classify reliably
+
+NOTE: Clean TTS/synthetic audio should score 85–100 confidence if the speech is clear.
+Do NOT give low confidence just because a clip is short — base it on clarity and ambiguity only.
 
 ═══════════════════════════════════════════
 OUTPUT — STRICT JSON SCHEMA
 ═══════════════════════════════════════════
-Return ONLY the following JSON object. No markdown fences, no prose, no extra keys.
+Return ONLY this JSON object. No markdown fences, no explanation, no extra keys.
 
 {
-  "transcript": "<Urdu words with *stutter* markers>",
+  "transcript": "<Urdu words, stuttered tokens wrapped in *asterisks*>",
   "totalWords": <integer ≥ 0>,
   "disfluencyCount": <integer ≥ 0>,
   "severityScore": <integer 0–100>,
   "confidence": <integer 0–100>,
   "avgDuration": <float ≥ 0.0>,
   "stutterTypes": [
-    {"type": "Takrar (Repetitions)",   "urdu": "تکرار", "count": <int ≥ 0>, "percent": <int 0–100>},
-    {"type": "Tawalat (Prolongations)","urdu": "طوالت", "count": <int ≥ 0>, "percent": <int 0–100>},
-    {"type": "Rukawat (Blocks)",       "urdu": "رکاوٹ", "count": <int ≥ 0>, "percent": <int 0–100>}
+    {"type": "Takrar (Repetitions)",    "urdu": "تکرار", "count": <int ≥ 0>, "percent": <int 0–100>},
+    {"type": "Tawalat (Prolongations)", "urdu": "طوالت", "count": <int ≥ 0>, "percent": <int 0–100>},
+    {"type": "Rukawat (Blocks)",        "urdu": "رکاوٹ", "count": <int ≥ 0>, "percent": <int 0–100>}
   ],
   "highlightedWords": [<0-indexed integers>]
 }`;
@@ -173,7 +212,7 @@ export const analyzeAudioWithGemini = async (audioBlob: Blob): Promise<AudioAnal
     console.log('[Gemini] Audio encoded, length:', audioBase64.length);
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.5-pro',
       systemInstruction: SYSTEM_INSTRUCTION,
     });
 
@@ -190,13 +229,13 @@ export const analyzeAudioWithGemini = async (audioBlob: Blob): Promise<AudioAnal
             ],
           }],
           generationConfig: {
-            // Disable thinking so JSON mode works reliably on gemini-2.5-flash
+            // Allow the model to think — critical for accurate audio classification
             // @ts-expect-error thinkingConfig not yet in SDK types for 0.24.x
-            thinkingConfig: { thinkingBudget: 0 },
+            thinkingConfig: { thinkingBudget: 8000 },
             responseMimeType: 'application/json',
-            temperature: 0.2,
-            topP: 0.8,
-            maxOutputTokens: 2048,
+            temperature: 0.1,
+            topP: 0.9,
+            maxOutputTokens: 8192,
           },
         });
         break;
