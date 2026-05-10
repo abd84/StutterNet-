@@ -18,57 +18,66 @@ const DATASET_DIR = './Dataset/Audios';
 
 // ─── Same prompt as src/lib/gemini.ts ──────────────────────────────────────
 
-const SYSTEM_INSTRUCTION = `You are an expert clinical speech-language pathologist specialising in Urdu fluency disorders and stuttering analysis. You analyse audio recordings of Urdu speech and identify stuttering events with precision. You always respond in valid JSON only — never in prose or markdown.`;
+const SYSTEM_INSTRUCTION = `You are an expert clinical speech-language pathologist specialising in Urdu fluency disorders and stuttering analysis. You analyse audio recordings of Urdu speech and identify stuttering events with precision. You classify every stutter event into exactly one of three levels: Syllable Level, Word Level, or Pause/Block Level. You always respond in valid JSON only — never in prose or markdown.`;
 
 const ANALYSIS_PROMPT = `STEP 1 — LISTEN FIRST
 Before doing anything else, listen to the entire audio clip. Note:
 - Is there any speech at all?
 - Is the speech in Urdu?
-- Are there any disfluencies (repetitions, prolongations, blocks)?
+- Are there any disfluencies (partial-word repetitions, whole-word repetitions, prolongations, blocks, or tense pauses)?
 - How clear is the audio quality?
 
 Only after fully listening, proceed with the analysis below.
 
 ═══════════════════════════════════════════
-STEP 2 — STUTTER TAXONOMY (ASHA standard, Urdu adapted)
+STEP 2 — STUTTER TAXONOMY (3-Level Clinical Classification)
 ═══════════════════════════════════════════
 
-1. Takrar – تکرار (Repetitions)
-   What it sounds like: a sound, syllable, or whole word repeated involuntarily
-   Examples: ک-ک-کام (syllable), مجھے مجھے جانا (word), میں چاہتا میں چاہتا ہوں (phrase)
-   Key marker: speaker does NOT intend the repetition — there is effort or struggle
+Use EXACTLY these three types. Every stutter event must be classified into one and only one type.
 
-2. Tawalat – طوالت (Prolongations)
-   What it sounds like: a vowel or consonant held longer than natural (>0.5 seconds)
-   Examples: سسسسنو، آآآج، ممممما
-   Key marker: unnatural lengthening, often with rising pitch or audible tension on release
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TYPE 1 — Syllable Level  (حرف سطح)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+What it is: Involuntary repetition of a PARTIAL word — a phoneme, onset, or syllable fragment is repeated before the full word completes.
+Examples: "ج ج جاتی", "ک-ک-کام", "بب بات"
+Decision rule: If the repeated unit is a FRAGMENT of a word → Syllable Level.
 
-3. Rukawat – رکاوٹ (Blocks)
-   What it sounds like: a complete stop or silent hold before/during a word, then sudden release
-   Examples: [silent hold of 0.5s+]…کام، [tense silence]…بات
-   Key marker: audible tension before or after the silence, not just a natural pause between sentences
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TYPE 2 — Word Level  (لفظ سطح)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+What it is: Involuntary repetition of a COMPLETE word.
+Examples: "سائز سائز بڑا", "میں میں جانا", "یہ یہ کتاب"
+Decision rule: If the repeated unit is a FULL word → Word Level.
 
-DO NOT count these as stutters:
-• Filler sounds: اممم، آہ، ہاں، ٹھیک ہے — these are natural speech
-• Normal sentence restarts with no struggle: speaker casually restarts a thought
-• Deliberate emphatic repetition for effect (speaker sounds relaxed, no effort)
-• Silence between sentences or natural pauses at punctuation
-• Background noise, music, or non-speech sounds
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TYPE 3 — Pause / Block Level  (وقفہ / رکاوٹ)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+What it is: A stoppage, stretch, or stuck onset — NO repetition. Covers:
+  A) Hard Block: silent hold (≥0.3s) before a word onset with abrupt/tense release
+  B) Prolongation: a single vowel or consonant held abnormally long (>0.5s), e.g. "سسسسنو"
+  C) Tense Pause: abnormal within-phrase hesitation with audible effort or pitch rise
+Decision rule: No repetition of any unit, but a stoppage, stretch, or stuck start → Pause/Block Level.
 
-IMPORTANT — SYNTHETIC/TTS AUDIO:
-This audio may be computer-generated (ElevenLabs TTS). TTS-synthesised stutters sound different from real speech:
-• TTS Takrar (repetition): the syllable or word is clearly repeated — e.g. "ک ک کام", "مجھے مجھے". It does NOT sound like a prolongation even if the transition is smooth.
-• TTS Rukawat (block): appears as a silent gap (≥0.3s) immediately before a word starts, followed by an abrupt word onset. There is NO audible tension in TTS — detect by the silence alone. Do not classify as Tawalat unless a vowel/consonant is audibly stretched.
-• TTS Tawalat (prolongation): the vowel or consonant is audibly stretched/held — e.g. "سسسنو". This is distinct from a repetition.
-• Do NOT confuse smooth TTS transitions between repeated syllables with prolongations — if the same sound occurs twice in a row, it is a repetition (Takrar), not a prolongation (Tawalat).
-• Do not penalise confidence for clean audio — clean TTS should score 85–100 confidence.
+DISAMBIGUATION:
+• Sound fragment 2+ times → Syllable Level
+• Full word 2+ times → Word Level
+• Sound once but stretched → Pause/Block Level
+• Silent gap before word → Pause/Block Level
+
+DO NOT count: fillers (اممم، آہ، ہاں)، natural pauses at sentence boundaries, deliberate emphatic repetition, background noise.
+
+SYNTHETIC/TTS AUDIO: TTS stutters are clean but still classifiable:
+• TTS Syllable Level: phoneme/syllable fragment repeated 2+ times before full word — "ج ج جاتی"
+• TTS Word Level: complete word repeated twice in a row — "سائز سائز"
+• TTS Pause/Block: silent gap (≥0.3s) before word onset, or audibly stretched vowel/consonant
+• Clean TTS = high confidence (85–100), not low.
 
 ═══════════════════════════════════════════
 STEP 3 — SEVERITY FORMULA
 ═══════════════════════════════════════════
 
 Step 3a — Weighted event score:
-  weighted = (takrar_count × 1.0) + (tawalat_count × 1.5) + (rukawat_count × 2.0)
+  weighted = (syllable_level_count × 1.0) + (word_level_count × 1.5) + (pause_block_level_count × 2.0)
 
 Step 3b — Base severity:
   base = (weighted / max(totalWords, 1)) × 100
@@ -82,7 +91,7 @@ Step 3c — Clinical modifiers:
 
 Step 3d — Override rules:
   • disfluencyCount = 0  →  severityScore = 0
-  • Any rukawat (block) with struggle in a clip under 10 words  →  severityScore ≥ 35
+  • Any Pause/Block Level with struggle in a clip under 10 words  →  severityScore ≥ 35
   • disfluencyCount ≥ 3  →  severityScore ≥ 25
 
 ═══════════════════════════════════════════
@@ -92,9 +101,8 @@ STEP 4 — TRANSCRIPT, highlightedWords, PERCENT, avgDuration, confidence
 • totalWords: count of intended lexical words (not stutter tokens)
 • highlightedWords: 0-indexed positions of *asterisk-wrapped* tokens after splitting on whitespace
 • percent: round(count / max(disfluencyCount,1) × 100), must sum to 100
-• avgDuration: estimated seconds per event (0.3 easy rep → 2.0 block)
+• avgDuration: estimated seconds per event (0.3 syllable rep → 0.5–0.8 word rep → 0.8–2.0 pause/block)
 • confidence: 85-100 clear unambiguous, 65-84 mild ambiguity, 40-64 hard to tell, <40 inaudible
-  NOTE: Clean TTS audio = high confidence (85+), not low.
 
 ═══════════════════════════════════════════
 OUTPUT — STRICT JSON SCHEMA
@@ -109,9 +117,9 @@ Return ONLY this JSON. No markdown, no prose, no extra keys.
   "confidence": <int 0-100>,
   "avgDuration": <float ≥ 0.0>,
   "stutterTypes": [
-    {"type": "Takrar (Repetitions)",    "urdu": "تکرار", "count": <int>, "percent": <int>},
-    {"type": "Tawalat (Prolongations)", "urdu": "طوالت", "count": <int>, "percent": <int>},
-    {"type": "Rukawat (Blocks)",        "urdu": "رکاوٹ", "count": <int>, "percent": <int>}
+    {"type": "Syllable Level",     "urdu": "حرف سطح",      "count": <int>, "percent": <int>},
+    {"type": "Word Level",         "urdu": "لفظ سطح",      "count": <int>, "percent": <int>},
+    {"type": "Pause / Block Level","urdu": "وقفہ / رکاوٹ", "count": <int>, "percent": <int>}
   ],
   "highlightedWords": [<0-indexed ints>]
 }`;
@@ -147,13 +155,13 @@ function getGroundTruth(filename, gtMap) {
 function getPredicted(result) {
   const { stutterTypes, disfluencyCount } = result;
   if (disfluencyCount === 0) return 'clean';
-  const takrar  = stutterTypes.find(t => t.type.includes('Takrar'))?.count  ?? 0;
-  const tawalat = stutterTypes.find(t => t.type.includes('Tawalat'))?.count ?? 0;
-  const rukawat = stutterTypes.find(t => t.type.includes('Rukawat'))?.count ?? 0;
-  const dominant = Math.max(takrar, tawalat, rukawat);
-  if (dominant === rukawat && rukawat > 0) return 'rukawat_block';
-  if (dominant === tawalat && tawalat > 0) return 'tawalat_prolongation';
-  return 'takrar';   // covers both syllable and word repetition
+  const syllable  = stutterTypes.find(t => t.type.toLowerCase().includes('syllable'))?.count ?? 0;
+  const word      = stutterTypes.find(t => t.type.toLowerCase().includes('word'))?.count     ?? 0;
+  const pauseBlock= stutterTypes.find(t => t.type.toLowerCase().includes('pause') || t.type.toLowerCase().includes('block'))?.count ?? 0;
+  const dominant  = Math.max(syllable, word, pauseBlock);
+  if (dominant === pauseBlock && pauseBlock > 0) return 'rukawat_block';
+  if (dominant === word && word > 0) return 'takrar_word';
+  return 'takrar_syllable';
 }
 
 function isCorrect(gt, pred) {
@@ -233,15 +241,15 @@ async function main() {
       const ok       = isCorrect(gt, pred);
       if (ok) correct++;
 
-      const takrar  = analysis.stutterTypes?.find(t => t.type.includes('Takrar'))?.count  ?? '?';
-      const rukawat = analysis.stutterTypes?.find(t => t.type.includes('Rukawat'))?.count ?? '?';
-      const tawalat = analysis.stutterTypes?.find(t => t.type.includes('Tawalat'))?.count ?? '?';
+      const syllable  = analysis.stutterTypes?.find(t => t.type.toLowerCase().includes('syllable'))?.count   ?? '?';
+      const wordLvl   = analysis.stutterTypes?.find(t => t.type.toLowerCase().includes('word'))?.count      ?? '?';
+      const pauseBlk  = analysis.stutterTypes?.find(t => t.type.toLowerCase().includes('pause') || t.type.toLowerCase().includes('block'))?.count ?? '?';
 
       console.log(
         `${ok ? '✅' : '❌'} ${pred.padEnd(22)} ` +
         `sev:${String(analysis.severityScore).padStart(3)}  ` +
         `conf:${String(analysis.confidence).padStart(3)}  ` +
-        `T:${takrar} P:${tawalat} B:${rukawat}`
+        `Sy:${syllable} W:${wordLvl} Pb:${pauseBlk}`
       );
 
       results.push({ filename, gt, pred, ok, ...analysis });

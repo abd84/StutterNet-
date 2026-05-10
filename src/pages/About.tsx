@@ -325,9 +325,9 @@ const About = () => {
               </p>
               <div className="grid sm:grid-cols-3 gap-3">
                 {[
-                  { label: "Repetitions (Takrar)", weight: "×1.0", color: "border-primary/30 bg-primary/5", desc: "Least disruptive. A repeated syllable or word adds minimal communication burden." },
-                  { label: "Prolongations (Tawalat)", weight: "×1.5", color: "border-accent/30 bg-accent/5", desc: "Moderately disruptive. Holding a sound abnormally long signals effort and tension." },
-                  { label: "Blocks (Rukawat)", weight: "×2.0", color: "border-secondary/30 bg-secondary/5", desc: "Most disruptive. A complete speech arrest with audible struggle is clinically the most severe event." },
+                  { label: "Syllable Level (حرف سطح)", weight: "×1.0", color: "border-primary/30 bg-primary/5", desc: "Least disruptive. Partial-word or phoneme-level repetition — the speaker repeats a syllable fragment before completing the word." },
+                  { label: "Word Level (لفظ سطح)", weight: "×1.5", color: "border-accent/30 bg-accent/5", desc: "Moderately disruptive. A whole word is repeated involuntarily, interrupting the flow of speech." },
+                  { label: "Pause / Block Level (وقفہ / رکاوٹ)", weight: "×2.0", color: "border-secondary/30 bg-secondary/5", desc: "Most disruptive. A complete speech arrest, prolonged sound stretch, or tense pause — the most severe stutter event." },
                 ].map((t, i) => (
                   <div key={i} className={`p-3 rounded-lg border ${t.color}`}>
                     <div className="font-bold text-foreground text-sm">{t.label} <span className="text-primary">{t.weight}</span></div>
@@ -336,10 +336,10 @@ const About = () => {
                 ))}
               </div>
               <div className="p-3 bg-black/20 rounded-lg border border-white/10 text-xs space-y-1">
-                <div><strong className="text-foreground">Formula:</strong> weighted_score = (repetitions × 1) + (prolongations × 1.5) + (blocks × 2)</div>
-                <div><strong className="text-foreground">Base severity</strong> = (weighted_score ÷ total_words) × 200, clamped to 0–100</div>
-                <div><strong className="text-foreground">Modifiers:</strong> +10 for audible struggle/tension · +8 for secondary behaviours · −5 for effort-free events</div>
-                <div className="text-muted-foreground pt-1">Example: 1 block in a 5-word sentence scores ~80 (severe). Five easy repetitions in 50 words scores ~10 (very mild).</div>
+                <div><strong className="text-foreground">Formula:</strong> weighted_score = (syllable_level × 1.0) + (word_level × 1.5) + (pause_block_level × 2.0)</div>
+                <div><strong className="text-foreground">Base severity</strong> = (weighted_score ÷ total_words) × 100, clamped to 0–100</div>
+                <div><strong className="text-foreground">Modifiers:</strong> +15 audible struggle/tension · +10 secondary behaviours (gasping, pitch breaks) · −10 effort-free brief events</div>
+                <div className="text-muted-foreground pt-1">Example: 1 pause/block in a 6-word sentence scores ~33 (Mild). One syllable repetition in 18 words scores ~6 (Very Mild).</div>
               </div>
             </CardContent>
           </Card>

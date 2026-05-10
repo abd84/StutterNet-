@@ -23,48 +23,85 @@ export interface AudioAnalysisResult {
 
 // ─── Prompt ────────────────────────────────────────────────────────────────
 
-const SYSTEM_INSTRUCTION = `You are an expert clinical speech-language pathologist specialising in Urdu fluency disorders and stuttering analysis. You analyse audio recordings of Urdu speech and identify stuttering events with precision. You always respond in valid JSON only — never in prose or markdown.`;
+const SYSTEM_INSTRUCTION = `You are an expert clinical speech-language pathologist specialising in Urdu fluency disorders and stuttering analysis. You analyse audio recordings of Urdu speech and identify stuttering events with precision. You classify every stutter event into exactly one of three levels: Syllable Level, Word Level, or Pause/Block Level. You always respond in valid JSON only — never in prose or markdown.`;
 
 const ANALYSIS_PROMPT = `STEP 1 — LISTEN FIRST
 Before doing anything else, listen to the entire audio clip. Note:
 - Is there any speech at all?
 - Is the speech in Urdu?
-- Are there any disfluencies (repetitions, prolongations, blocks)?
+- Are there any disfluencies (partial-word repetitions, whole-word repetitions, prolongations, blocks, or tense pauses)?
 - How clear is the audio quality?
 
 Only after fully listening, proceed with the analysis below.
 
 ═══════════════════════════════════════════
-STEP 2 — STUTTER TAXONOMY (ASHA standard, Urdu adapted)
+STEP 2 — STUTTER TAXONOMY (3-Level Clinical Classification)
 ═══════════════════════════════════════════
 
-1. Takrar – تکرار (Repetitions)
-   What it sounds like: the same sound, syllable, or whole word occurs MORE THAN ONCE. Even if TTS transitions sound smooth, if you count the sound appearing 2+ times — it is Takrar.
-   Examples: ج ج جاتی (syllable), سائز سائز (word), میں چاہتا میں چاہتا ہوں (phrase)
-   Rule: count occurrences. Two or more = Takrar. One stretched occurrence = Tawalat.
+Use EXACTLY these three types. Every stutter event must be classified into one and only one type.
 
-2. Tawalat – طوالت (Prolongations)
-   What it sounds like: ONE vowel or consonant held longer than natural (>0.5s). It is a single unbroken sound — not repeated, just stretched.
-   Examples: سسسسنو، آآآج، ممممما
-   Rule: only ONE occurrence of the sound, but it is abnormally long. If the same sound appears twice, that is Takrar not Tawalat.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TYPE 1 — Syllable Level  (حرف سطح)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+What it is: Involuntary repetition of a PARTIAL word — a phoneme, onset, or syllable fragment is repeated before the full word completes.
+Acoustic cues:
+  • A sound or syllable occurs 2+ times before the complete word is produced
+  • The repeated unit is LESS THAN a full word (ج-ج-جاتی, ک-ک-کام, م-م-ماما)
+  • May sound like stuttered onset even in TTS audio
+Examples:
+  • "ج ج جاتی" — /j/ onset repeated twice before "جاتی"
+  • "ک-ک-کام" — /k/ repeated before "کام"
+  • "بب بات" — /b/ repeated before "بات"
+Decision rule: If the repeated unit is a fragment of a word (not the whole word) → Syllable Level.
 
-3. Rukawat – رکاوٹ (Blocks)
-   What it sounds like: a complete stop or silent hold before/during a word, then sudden release
-   Examples: [silent hold of 0.5s+]…کام، [tense silence]…بات
-   Key marker: audible tension before or after the silence, not just a natural pause between sentences
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TYPE 2 — Word Level  (لفظ سطح)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+What it is: Involuntary repetition of a COMPLETE word or short phrase.
+Acoustic cues:
+  • An entire lexical word appears 2+ times in immediate succession
+  • The repeated unit IS a complete, recognisable Urdu word
+  • May also include part-phrase repetitions where a grammatical unit repeats
+Examples:
+  • "سائز سائز بڑا" — whole word "سائز" repeated
+  • "میں میں جانا" — pronoun "میں" repeated
+  • "یہ یہ کتاب" — demonstrative "یہ" repeated
+Decision rule: If the repeated unit is a FULL word → Word Level.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TYPE 3 — Pause / Block Level  (وقفہ / رکاوٹ)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+What it is: A complete stoppage of airflow/voice, or an abnormally stretched sound — the speaker cannot start or sustain phonation fluently.
+This type covers THREE related phenomena:
+  A) Hard Block: silent articulatory hold (≥0.3s) before a word, followed by abrupt or tense release
+     Example: [silent hold]…کام, [tense silence]…بات
+  B) Prolongation / Sound Stretch: a single vowel or consonant held far beyond its natural length (>0.5s)
+     Example: سسسسنو، آآآج، ممممما — ONE occurrence stretched, not repeated
+  C) Tense Pause: abnormal hesitation WITHIN a phrase (not at a natural sentence boundary) accompanied by visible/audible effort, pitch rise, or laryngeal tension
+Decision rule: If there is NO repetition of a unit, but instead a stoppage, stretch, or stuck onset → Pause/Block Level.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DISAMBIGUATION GUIDE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Sound occurs 2+ times as a FRAGMENT → Syllable Level (NOT Pause/Block)
+• Complete word occurs 2+ times → Word Level (NOT Syllable Level)
+• Sound occurs exactly ONCE but is stretched unnaturally → Pause/Block Level (prolongation)
+• Silent gap before word onset (≥0.3s) → Pause/Block Level (block)
+• "ج ج جاتی" — 2 fragments + full word → Syllable Level (count = 1 event)
+• "سائز سائز" — full word twice → Word Level (count = 1 event)
 
 DO NOT count these as stutters:
 • Filler sounds: اممم، آہ، ہاں، ٹھیک ہے — these are natural speech
-• Normal sentence restarts with no struggle: speaker casually restarts a thought
-• Deliberate emphatic repetition for effect (speaker sounds relaxed, no effort)
+• Normal sentence restarts with no struggle
+• Deliberate emphatic repetition (speaker sounds relaxed, no effort)
 • Silence between sentences or natural pauses at punctuation
 • Background noise, music, or non-speech sounds
 
 IMPORTANT — SYNTHETIC/TTS AUDIO:
-This audio may be computer-generated (ElevenLabs TTS). TTS-synthesised stutters sound different from real speech:
-• TTS Takrar (repetition): the sound or word occurs 2+ times — e.g. "ج ج جاتی", "سائز سائز". Count occurrences: two or more = Takrar, even if TTS transitions sound smooth.
-• TTS Tawalat (prolongation): one sound stretched — e.g. "سسسنو". Only classify as Tawalat if the sound occurs exactly ONCE but is abnormally long.
-• TTS Rukawat (block): silent gap (≥0.3s) before word onset, followed by abrupt restart. No audible tension in TTS — detect by silence alone.
+This audio may be computer-generated (ElevenLabs TTS). TTS-synthesised stutters sound clean but are still classifiable:
+• TTS Syllable Level: partial phoneme/syllable fragment appears 2+ times before the full word — e.g. "ج ج جاتی". Classify as Syllable Level even if the transitions sound smooth.
+• TTS Word Level: a complete word appears twice in a row — e.g. "سائز سائز". Classify as Word Level.
+• TTS Pause/Block: detect a silent gap (≥0.3s) before a word onset, or an unnaturally stretched vowel/consonant. No audible tension needed in TTS — detect by timing alone.
 • Do not penalise confidence for clean audio — clean TTS should score 85–100 confidence.
 
 ═══════════════════════════════════════════
@@ -72,17 +109,17 @@ STEP 3 — SEVERITY FORMULA
 ═══════════════════════════════════════════
 
 Step 3a — Weighted event score:
-  weighted = (takrar_count × 1.0) + (tawalat_count × 1.5) + (rukawat_count × 2.0)
+  weighted = (syllable_level_count × 1.0) + (word_level_count × 1.5) + (pause_block_level_count × 2.0)
 
 Step 3b — Base severity (use totalWords of the FULL sentence, not counting stutter tokens):
   base = (weighted / max(totalWords, 1)) × 100
   Clamp base to 0–100.
 
   Quick reference:
-  • 1 repetition in 10 words  → base ≈ 10  (Mild)
-  • 2 repetitions in 8 words  → base ≈ 25  (Mild-Moderate)
-  • 1 block in 6 words        → base ≈ 33  (Moderate)
-  • 3 mixed events in 8 words → base ≈ 44  (Moderate-Severe)
+  • 1 syllable-level event in 10 words  → base ≈ 10  (Very Mild)
+  • 1 word-level event in 10 words      → base ≈ 15  (Very Mild)
+  • 1 pause/block event in 6 words      → base ≈ 33  (Mild)
+  • 3 mixed events in 8 words           → base ≈ 44  (Moderate)
 
 Step 3c — Clinical modifiers (add/subtract, then re-clamp 0–100):
   +15  audible struggle, strained voice, laryngeal tension heard
@@ -92,7 +129,7 @@ Step 3c — Clinical modifiers (add/subtract, then re-clamp 0–100):
 
 Step 3d — Override rules:
   • disfluencyCount = 0  →  severityScore = 0  (hard rule, no exceptions)
-  • Any rukawat (block) with struggle present in a clip under 10 words  →  severityScore ≥ 35
+  • Any Pause/Block Level event with struggle present in a clip under 10 words  →  severityScore ≥ 35
   • disfluencyCount ≥ 3 in any clip  →  severityScore ≥ 25
 
 Severity bands for reference:
@@ -133,9 +170,9 @@ STEP 7 — avgDuration
 ═══════════════════════════════════════════
 Estimate the average duration in seconds of a single stutter event based on what you heard.
 Use these anchors:
-  Easy repetition (1 extra iteration): 0.3s
-  Multiple repetitions or prolongation: 0.5–1.0s
-  Block with tension: 0.8–2.0s
+  Syllable-level repetition (1–2 extra iterations): 0.3s
+  Word-level repetition: 0.5–0.8s
+  Pause/Block (prolongation or block with tension): 0.8–2.0s
   No stutters: 0.0
 
 ═══════════════════════════════════════════
@@ -143,7 +180,7 @@ STEP 8 — confidence
 ═══════════════════════════════════════════
 Your confidence in the CLASSIFICATION (not audio quality):
   85–100: speech is clear, you can hear each word distinctly, stutter events (if any) are unambiguous
-  65–84:  some mild ambiguity — one event could be either a stutter or normal disfluency
+  65–84:  some mild ambiguity — one event could belong to a different level
   40–64:  significant ambiguity — multiple events hard to classify, or very short clip
   <40:    speech barely intelligible or too noisy to classify reliably
 
@@ -163,9 +200,9 @@ Return ONLY this JSON object. No markdown fences, no explanation, no extra keys.
   "confidence": <integer 0–100>,
   "avgDuration": <float ≥ 0.0>,
   "stutterTypes": [
-    {"type": "Takrar (Repetitions)",    "urdu": "تکرار", "count": <int ≥ 0>, "percent": <int 0–100>},
-    {"type": "Tawalat (Prolongations)", "urdu": "طوالت", "count": <int ≥ 0>, "percent": <int 0–100>},
-    {"type": "Rukawat (Blocks)",        "urdu": "رکاوٹ", "count": <int ≥ 0>, "percent": <int 0–100>}
+    {"type": "Syllable Level",     "urdu": "حرف سطح",      "count": <int ≥ 0>, "percent": <int 0–100>},
+    {"type": "Word Level",         "urdu": "لفظ سطح",      "count": <int ≥ 0>, "percent": <int 0–100>},
+    {"type": "Pause / Block Level","urdu": "وقفہ / رکاوٹ", "count": <int ≥ 0>, "percent": <int 0–100>}
   ],
   "highlightedWords": [<0-indexed integers>]
 }`;
@@ -293,9 +330,9 @@ export const analyzeAudioWithGemini = async (audioBlob: Blob): Promise<AudioAnal
     // Model may use different type names — match by keyword
     const COLOURS = ['bg-primary', 'bg-accent', 'bg-secondary'];
     const DEFAULTS = [
-      { type: 'Takrar (Repetitions)',    urdu: 'تکرار', keywords: ['repetition', 'takrar', 'تکرار'] },
-      { type: 'Tawalat (Prolongations)', urdu: 'طوالت', keywords: ['prolongation', 'tawalat', 'طوالت'] },
-      { type: 'Rukawat (Blocks)',        urdu: 'رکاوٹ', keywords: ['block', 'rukawat', 'رکاوٹ'] },
+      { type: 'Syllable Level',      urdu: 'حرف سطح',      keywords: ['syllable', 'حرف سطح', 'حرف'] },
+      { type: 'Word Level',          urdu: 'لفظ سطح',      keywords: ['word level', 'word', 'لفظ سطح', 'لفظ'] },
+      { type: 'Pause / Block Level', urdu: 'وقفہ / رکاوٹ', keywords: ['pause', 'block', 'وقفہ', 'رکاوٹ'] },
     ];
     const rawTypes = Array.isArray(analysis.stutterTypes)
       ? (analysis.stutterTypes as Array<Record<string, unknown>>)
@@ -346,9 +383,9 @@ export const analyzeAudioWithGemini = async (audioBlob: Blob): Promise<AudioAnal
       totalWords: 0, disfluencyCount: 0, severityScore: 0,
       confidence: 0, avgDuration: 0, highlightedWords: [],
       stutterTypes: [
-        { type: 'Takrar (Repetitions)',    urdu: 'تکرار', count: 0, color: 'bg-primary',   percent: 0 },
-        { type: 'Tawalat (Prolongations)', urdu: 'طوالت', count: 0, color: 'bg-accent',    percent: 0 },
-        { type: 'Rukawat (Blocks)',        urdu: 'رکاوٹ', count: 0, color: 'bg-secondary', percent: 0 },
+        { type: 'Syllable Level',      urdu: 'حرف سطح',      count: 0, color: 'bg-primary',   percent: 0 },
+        { type: 'Word Level',          urdu: 'لفظ سطح',      count: 0, color: 'bg-accent',    percent: 0 },
+        { type: 'Pause / Block Level', urdu: 'وقفہ / رکاوٹ', count: 0, color: 'bg-secondary', percent: 0 },
       ],
       error: error instanceof Error ? error.message : 'Unknown error',
       isGeminiAnalysis: false,

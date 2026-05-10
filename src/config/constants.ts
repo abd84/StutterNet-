@@ -100,9 +100,9 @@ export const DEMO_ANALYSIS_RESULTS: Record<string, any | unknown> = {
     avgDuration: 0.4,
     confidence: 98,
     stutterTypes: [
-      { type: "Takrar (Repetitions)", urdu: "تکرار", count: 1, color: "bg-primary", percent: 100 },
-      { type: "Tawalat (Prolongations)", urdu: "طوالت", count: 0, color: "bg-accent", percent: 0 },
-      { type: "Rukawat (Blocks)", urdu: "رکاوٹ", count: 0, color: "bg-secondary", percent: 0 }
+      { type: "Syllable Level",      urdu: "حرف سطح",      count: 1, color: "bg-primary",   percent: 100 },
+      { type: "Word Level",          urdu: "لفظ سطح",      count: 0, color: "bg-accent",    percent: 0 },
+      { type: "Pause / Block Level", urdu: "وقفہ / رکاوٹ", count: 0, color: "bg-secondary", percent: 0 }
     ],
     transcript: "بھائی یہ بس کہاں جاتی ہے کیا یہ صدر تک *ج-جاتی* ہے یا مجھے دوسری بس لینی ہوگی",
     highlightedWords: [10]
@@ -114,9 +114,9 @@ export const DEMO_ANALYSIS_RESULTS: Record<string, any | unknown> = {
     avgDuration: 0.5,
     confidence: 98,
     stutterTypes: [
-      { type: "Takrar (Repetitions)", urdu: "تکرار", count: 1, color: "bg-primary", percent: 100 },
-      { type: "Tawalat (Prolongations)", urdu: "طوالت", count: 0, color: "bg-accent", percent: 0 },
-      { type: "Rukawat (Blocks)", urdu: "رکاوٹ", count: 0, color: "bg-secondary", percent: 0 }
+      { type: "Syllable Level",      urdu: "حرف سطح",      count: 0, color: "bg-primary",   percent: 0 },
+      { type: "Word Level",          urdu: "لفظ سطح",      count: 1, color: "bg-accent",    percent: 100 },
+      { type: "Pause / Block Level", urdu: "وقفہ / رکاوٹ", count: 0, color: "bg-secondary", percent: 0 }
     ],
     transcript: "یہ قمیض بہت اچھی ہے لیکن کیا اس میں *سائز سائز* بڑا بھی ملتا ہے ایکسٹرا لارج میں",
     highlightedWords: [8, 9]
@@ -128,9 +128,9 @@ export const DEMO_ANALYSIS_RESULTS: Record<string, any | unknown> = {
     avgDuration: 1.2,
     confidence: 95,
     stutterTypes: [
-      { type: "Takrar (Repetitions)", urdu: "تکرار", count: 0, color: "bg-primary", percent: 0 },
-      { type: "Tawalat (Prolongations)", urdu: "طوالت", count: 0, color: "bg-accent", percent: 0 },
-      { type: "Rukawat (Blocks)", urdu: "رکاوٹ", count: 1, color: "bg-secondary", percent: 100 }
+      { type: "Syllable Level",      urdu: "حرف سطح",      count: 0, color: "bg-primary",   percent: 0 },
+      { type: "Word Level",          urdu: "لفظ سطح",      count: 0, color: "bg-accent",    percent: 0 },
+      { type: "Pause / Block Level", urdu: "وقفہ / رکاوٹ", count: 1, color: "bg-secondary", percent: 100 }
     ],
     transcript: "ہمیں اس پروجیکٹ کو *—* اگلے مہینے تک ہر حال میں مکمل کرنا ہے ورنہ بہت مسئلہ ہو گا",
     highlightedWords: [4]

@@ -85,9 +85,9 @@ export async function analyzeAudio(blob: Blob): Promise<AudioAnalysisResult> {
         totalWords: 0, disfluencyCount: 0, severityScore: 0,
         confidence: 0, avgDuration: 0, highlightedWords: [],
         stutterTypes: [
-          { type:"Takrar (Repetitions)", urdu:"تکرار", count:0, color:"bg-primary", percent:0 },
-          { type:"Tawalat (Prolongations)", urdu:"طوالت", count:0, color:"bg-accent", percent:0 },
-          { type:"Rukawat (Blocks)", urdu:"رکاوٹ", count:0, color:"bg-secondary", percent:0 },
+          { type:"Syllable Level",      urdu:"حرف سطح",      count:0, color:"bg-primary",   percent:0 },
+          { type:"Word Level",          urdu:"لفظ سطح",      count:0, color:"bg-accent",    percent:0 },
+          { type:"Pause / Block Level", urdu:"وقفہ / رکاوٹ", count:0, color:"bg-secondary", percent:0 },
         ],
         error: err instanceof Error ? err.message : String(err),
         isGeminiAnalysis: false,

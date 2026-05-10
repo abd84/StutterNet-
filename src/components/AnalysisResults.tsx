@@ -23,9 +23,9 @@ const AnalysisResults = ({ audioUrl, duration = 45, selectedDemo }: AnalysisResu
         avgDuration: 2.3,
         confidence: 96,
         stutterTypes: [
-          { type: "Takrar (Repetitions)", urdu: "تکرار", count: 4, color: "bg-primary", percent: 100 },
-          { type: "Tawalat (Prolongations)", urdu: "طوالت", count: 0, color: "bg-accent", percent: 0 },
-          { type: "Rukawat (Blocks)", urdu: "رکاوٹ", count: 0, color: "bg-secondary", percent: 0 }
+          { type: "Syllable Level",      urdu: "حرف سطح",      count: 4, color: "bg-primary",   percent: 100 },
+          { type: "Word Level",          urdu: "لفظ سطح",      count: 0, color: "bg-accent",    percent: 0 },
+          { type: "Pause / Block Level", urdu: "وقفہ / رکاوٹ", count: 0, color: "bg-secondary", percent: 0 }
         ],
         transcript: "اب ا... ا... [حرف] میں نے",
         highlightedWords: [1, 2]
@@ -37,9 +37,9 @@ const AnalysisResults = ({ audioUrl, duration = 45, selectedDemo }: AnalysisResu
         avgDuration: 3.1,
         confidence: 94,
         stutterTypes: [
-          { type: "Takrar (Repetitions)", urdu: "تکرار", count: 0, color: "bg-primary", percent: 0 },
-          { type: "Tawalat (Prolongations)", urdu: "طوالت", count: 0, color: "bg-accent", percent: 0 },
-          { type: "Rukawat (Blocks)", urdu: "رکاوٹ", count: 2, color: "bg-secondary", percent: 100 }
+          { type: "Syllable Level",      urdu: "حرف سطح",      count: 0, color: "bg-primary",   percent: 0 },
+          { type: "Word Level",          urdu: "لفظ سطح",      count: 0, color: "bg-accent",    percent: 0 },
+          { type: "Pause / Block Level", urdu: "وقفہ / رکاوٹ", count: 2, color: "bg-secondary", percent: 100 }
         ],
         transcript: "ہمیں اس فروری کی کو [بلاک] ... [/بلاک] آئیں میں نے تک",
         highlightedWords: [5, 6, 7]
@@ -51,9 +51,9 @@ const AnalysisResults = ({ audioUrl, duration = 45, selectedDemo }: AnalysisResu
         avgDuration: 2.7,
         confidence: 97,
         stutterTypes: [
-          { type: "Takrar (Repetitions)", urdu: "تکرار", count: 3, color: "bg-primary", percent: 100 },
-          { type: "Tawalat (Prolongations)", urdu: "طوالت", count: 0, color: "bg-accent", percent: 0 },
-          { type: "Rukawat (Blocks)", urdu: "رکاوٹ", count: 0, color: "bg-secondary", percent: 0 }
+          { type: "Syllable Level",      urdu: "حرف سطح",      count: 3, color: "bg-primary",   percent: 100 },
+          { type: "Word Level",          urdu: "لفظ سطح",      count: 0, color: "bg-accent",    percent: 0 },
+          { type: "Pause / Block Level", urdu: "وقفہ / رکاوٹ", count: 0, color: "bg-secondary", percent: 0 }
         ],
         transcript: "یہ... یہ... یہ ایک نمونہ آڈیو فائل ہے",
         highlightedWords: [0, 1, 2]
@@ -65,9 +65,9 @@ const AnalysisResults = ({ audioUrl, duration = 45, selectedDemo }: AnalysisResu
         avgDuration: 3.4,
         confidence: 93,
         stutterTypes: [
-          { type: "Takrar (Repetitions)", urdu: "تکرار", count: 3, color: "bg-primary", percent: 38 },
-          { type: "Tawalat (Prolongations)", urdu: "طوالت", count: 2, color: "bg-accent", percent: 25 },
-          { type: "Rukawat (Blocks)", urdu: "رکاوٹ", count: 3, color: "bg-secondary", percent: 37 }
+          { type: "Syllable Level",      urdu: "حرف سطح",      count: 3, color: "bg-primary",   percent: 38 },
+          { type: "Word Level",          urdu: "لفظ سطح",      count: 2, color: "bg-accent",    percent: 25 },
+          { type: "Pause / Block Level", urdu: "وقفہ / رکاوٹ", count: 3, color: "bg-secondary", percent: 37 }
         ],
         transcript: "شدید... شد... شدید [بلاک] ... [/بلاک] لکنت کے ساتھ مختصر آڈیو کلپ میں متعدد اقسام",
         highlightedWords: [0, 1, 2, 3, 4, 5]
@@ -101,9 +101,9 @@ const AnalysisResults = ({ audioUrl, duration = 45, selectedDemo }: AnalysisResu
     const avgDuration = 1.2 + (baseSeverity / 100) * 2; // 1.2-3.2s range
 
     const stutterTypes = [
-      { type: "Takrar (Repetitions)", urdu: "تکرار", count: Math.floor(disfluencyCount * 0.45), color: "bg-primary", percent: 45 },
-      { type: "Tawalat (Prolongations)", urdu: "طوالت", count: Math.floor(disfluencyCount * 0.33), color: "bg-accent", percent: 33 },
-      { type: "Rukawat (Blocks)", urdu: "رکاوٹ", count: Math.floor(disfluencyCount * 0.22), color: "bg-secondary", percent: 22 }
+      { type: "Syllable Level",      urdu: "حرف سطح",      count: Math.floor(disfluencyCount * 0.45), color: "bg-primary",   percent: 45 },
+      { type: "Word Level",          urdu: "لفظ سطح",      count: Math.floor(disfluencyCount * 0.33), color: "bg-accent",    percent: 33 },
+      { type: "Pause / Block Level", urdu: "وقفہ / رکاوٹ", count: Math.floor(disfluencyCount * 0.22), color: "bg-secondary", percent: 22 }
     ];
 
     return {

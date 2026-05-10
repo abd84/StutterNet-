@@ -31,9 +31,9 @@ const AnalysisResults = ({ audioUrl, duration = 45, selectedDemo, analysisData }
     avgDuration: 2.1,
     confidence: 95,
     stutterTypes: [
-      { type: "Takrar (Repetitions)", urdu: "تکرار", count: 3, color: "bg-primary", percent: 60 },
-      { type: "Tawalat (Prolongations)", urdu: "طوالت", count: 1, color: "bg-accent", percent: 20 },
-      { type: "Rukawat (Blocks)", urdu: "رکاوٹ", count: 1, color: "bg-secondary", percent: 20 }
+      { type: "Syllable Level",      urdu: "حرف سطح",      count: 3, color: "bg-primary",   percent: 60 },
+      { type: "Word Level",          urdu: "لفظ سطح",      count: 1, color: "bg-accent",    percent: 20 },
+      { type: "Pause / Block Level", urdu: "وقفہ / رکاوٹ", count: 1, color: "bg-secondary", percent: 20 }
     ],
     transcript: "یہ اک نمونہ ٹرانسکرپٹ ہے جس میں کچھ الفاظ کو نشان زد کیا گیا ہے",
     highlightedWords: [2, 3, 8]
