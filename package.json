@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:api": "python3 -m uvicorn inference_server.main:app --host 0.0.0.0 --port 8010 --reload",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",

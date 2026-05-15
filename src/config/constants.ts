@@ -1,6 +1,14 @@
+import { buildDemoAnalysisResult } from "@/lib/demoAnalysis";
+import type { AudioAnalysisResult } from "@/lib/gemini";
+import { severityBandFromScore } from "@/lib/severity";
+
 export const APP_CONFIG = {
   AUDIO: {
     MAX_RECORDING_DURATION: 20, // seconds
+    /** Hard cap for Gemini / analysis requests (decode + API limits). */
+    MAX_ANALYSIS_DURATION_SEC: 20,
+    /** Inline audio payload safety limit (~20 MB raw bytes before base64). */
+    MAX_UPLOAD_BYTES: 20 * 1024 * 1024,
     FFT_SIZE: 512,
     ANALYZER_SMOOTHING: 0.8,
   },
@@ -19,7 +27,7 @@ export const DEMO_DATASET = [
     description: "Pure syllable-based stuttering — involuntary phoneme-level repetition",
     duration: 7,
     stutterType: "Syllable (Sy)",
-    severity: "Mild",
+    severity: "Very Mild",
     speaker: "Male Speaker A",
     stutterCount: 1,
     annotatedTranscript: "بھائی یہ بس کہاں جاتی ہے کیا یہ صدر تک [حرف]ج-جاتی[/حرف] ہے یا مجھے دوسری بس لینی ہوگی",
@@ -39,7 +47,7 @@ export const DEMO_DATASET = [
     description: "Whole-word repetition — same word repeated involuntarily multiple times",
     duration: 6,
     stutterType: "Word (Lafz)",
-    severity: "Mild",
+    severity: "Very Mild",
     speaker: "Male Speaker B",
     stutterCount: 1,
     annotatedTranscript: "یہ قمیض بہت اچھی ہے لیکن کیا اس میں [لفظ]سائز سائز[/لفظ] بڑا بھی ملتا ہے ایکسٹرا لارج میں",
@@ -59,7 +67,7 @@ export const DEMO_DATASET = [
     description: "Block stuttering — complete articulatory arrest mid-sentence",
     duration: 8,
     stutterType: "Pause (-p)",
-    severity: "Moderate",
+    severity: "Very Mild",
     speaker: "Male Speaker C",
     stutterCount: 1,
     annotatedTranscript: "ہمیں اس پروجیکٹ کو [بلاک]—[/بلاک] اگلے مہینے تک ہر حال میں مکمل کرنا ہے، ورنہ بہت مسئلہ ہو گا",
@@ -72,67 +80,92 @@ export const DEMO_DATASET = [
     annotationStyle: "ASHA Standard"
   },
   {
-    id: "T61-w",
-    filename: "T61-w.mp3",
-    label: "Mixed Stuttering",
-    labelUrdu: "مخلوط لکنت",
-    description: "Advanced mixed stutter analysis — multiple disfluency types",
-    duration: 8,
-    stutterType: "Mixed (Sy+p+w)",
+    id: "ORIG_SEVERE",
+    filename: "",
+    label: "Syllable + Block",
+    labelUrdu: "حرف و رکاوٹ",
+    description:
+      "Syllable-level struggle and articulatory blocks spread through a short Urdu utterance",
+    duration: 4,
+    stutterType: "Syllable + Block (Sy+p)",
     severity: "Severe",
     speaker: "Male Speaker D",
-    stutterCount: 0,
-    annotatedTranscript: "",
-    plainTranscript: "",
-    stutterMarkers: [],
-    totalWords: 0,
-    disfluencyCount: 0,
+    stutterCount: 5,
+    annotatedTranscript:
+      "ہاں [حرف]م-میں[/حرف] نے وہ [حرف]ک-کام[/حرف] [بلاک]—[/بلاک] ابھی [بلاک]—[/بلاک] [حرف]ت-تک[/حرف] نہیں کیا",
+    plainTranscript:
+      "ہاں میں نے وہ کام ابھی تک نہیں کیا",
+    stutterMarkers: [
+      { start: 1, end: 2, type: "syllable", label: "م-میں" },
+      { start: 4, end: 5, type: "syllable", label: "ک-کام" },
+      { start: 5, end: 6, type: "block", label: "—" },
+      { start: 7, end: 8, type: "block", label: "—" },
+      { start: 8, end: 9, type: "syllable", label: "ت-تک" },
+    ],
+    totalWords: 10,
+    disfluencyCount: 5,
     annotationStyle: "ASHA Standard",
-    isComingSoon: true
-  }
+    skipAudio: true,
+  },
 ];
 
-export const DEMO_ANALYSIS_RESULTS: Record<string, any | unknown> = {
-  "HARF_I017": {
-    severityScore: 6,
-    totalWords: 18,
-    disfluencyCount: 1,
-    avgDuration: 0.4,
-    confidence: 98,
-    stutterTypes: [
-      { type: "Syllable Level",      urdu: "حرف سطح",      count: 1, color: "bg-primary",   percent: 100 },
-      { type: "Word Level",          urdu: "لفظ سطح",      count: 0, color: "bg-accent",    percent: 0 },
-      { type: "Pause / Block Level", urdu: "وقفہ / رکاوٹ", count: 0, color: "bg-secondary", percent: 0 }
-    ],
-    transcript: "بھائی یہ بس کہاں جاتی ہے کیا یہ صدر تک *ج-جاتی* ہے یا مجھے دوسری بس لینی ہوگی",
-    highlightedWords: [10]
-  },
-  "LAFZ_009": {
-    severityScore: 6,
-    totalWords: 17,
-    disfluencyCount: 1,
-    avgDuration: 0.5,
-    confidence: 98,
-    stutterTypes: [
-      { type: "Syllable Level",      urdu: "حرف سطح",      count: 0, color: "bg-primary",   percent: 0 },
-      { type: "Word Level",          urdu: "لفظ سطح",      count: 1, color: "bg-accent",    percent: 100 },
-      { type: "Pause / Block Level", urdu: "وقفہ / رکاوٹ", count: 0, color: "bg-secondary", percent: 0 }
-    ],
-    transcript: "یہ قمیض بہت اچھی ہے لیکن کیا اس میں *سائز سائز* بڑا بھی ملتا ہے ایکسٹرا لارج میں",
-    highlightedWords: [8, 9]
-  },
-  "T20-p": {
-    severityScore: 22,
-    totalWords: 19,
-    disfluencyCount: 1,
-    avgDuration: 1.2,
-    confidence: 95,
-    stutterTypes: [
-      { type: "Syllable Level",      urdu: "حرف سطح",      count: 0, color: "bg-primary",   percent: 0 },
-      { type: "Word Level",          urdu: "لفظ سطح",      count: 0, color: "bg-accent",    percent: 0 },
-      { type: "Pause / Block Level", urdu: "وقفہ / رکاوٹ", count: 1, color: "bg-secondary", percent: 100 }
-    ],
-    transcript: "ہمیں اس پروجیکٹ کو *—* اگلے مہینے تک ہر حال میں مکمل کرنا ہے ورنہ بہت مسئلہ ہو گا",
-    highlightedWords: [4]
-  }
+const _harf = buildDemoAnalysisResult({
+  syllable: 1,
+  word: 0,
+  pause: 0,
+  totalWords: 18,
+  transcript: "بھائی یہ بس کہاں جاتی ہے کیا یہ صدر تک *ج-جاتی* ہے یا مجھے دوسری بس لینی ہوگی",
+  highlightedWords: [10],
+  confidence: 98,
+  avgDuration: 0.4,
+});
+
+const _lafz = buildDemoAnalysisResult({
+  syllable: 0,
+  word: 1,
+  pause: 0,
+  totalWords: 17,
+  transcript: "یہ قمیض بہت اچھی ہے لیکن کیا اس میں *سائز سائز* بڑا بھی ملتا ہے ایکسٹرا لارج میں",
+  highlightedWords: [9],
+  confidence: 98,
+  avgDuration: 0.5,
+});
+
+const _t20 = buildDemoAnalysisResult({
+  syllable: 0,
+  word: 0,
+  pause: 1,
+  totalWords: 19,
+  transcript: "ہمیں اس پروجیکٹ کو *—* اگلے مہینے تک ہر حال میں مکمل کرنا ہے ورنہ بہت مسئلہ ہو گا",
+  highlightedWords: [4],
+  confidence: 95,
+  avgDuration: 1.2,
+});
+
+/** 3 syllable + 2 block in 10-word sentence → severity 70 (Severe band) */
+const _origSevere = buildDemoAnalysisResult({
+  syllable: 3,
+  word: 0,
+  pause: 2,
+  totalWords: 10,
+  transcript:
+    "ہاں *م-میں* نے وہ *ک-کام* *—* ابھی *—* *ت-تک* نہیں کیا",
+  highlightedWords: [1, 4, 5, 7, 8],
+  confidence: 91,
+  avgDuration: 1.8,
+});
+
+export const DEMO_ANALYSIS_RESULTS: Record<string, AudioAnalysisResult> = {
+  HARF_I017: _harf,
+  LAFZ_009: _lafz,
+  "T20-p": _t20,
+  ORIG_SEVERE: _origSevere,
 };
+
+/** Sync display severity labels on dataset cards from formula scores */
+for (const sample of DEMO_DATASET) {
+  const result = DEMO_ANALYSIS_RESULTS[sample.id];
+  if (result) {
+    (sample as { severity: string }).severity = severityBandFromScore(result.severityScore);
+  }
+}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import Navigation from "@/components/Navigation";
 import AudioRecorder from "@/components/AudioRecorder";
 import FileUpload from "@/components/FileUpload";
@@ -8,7 +8,8 @@ import { Mic, Upload, Activity, Database, CheckCircle2, Brain, Sparkles, PlayCir
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AudioAnalysisResult } from "@/lib/gemini";
-import { DEMO_DATASET, APP_CONFIG } from "@/config/constants";
+import { DEMO_ANALYSIS_RESULTS, DEMO_DATASET } from "@/config/constants";
+import { severityDotClass } from "@/lib/severity";
 
 const Index = () => {
   const [inputMode, setInputMode] = useState<"record" | "upload" | "demo" | null>(null);
@@ -96,7 +97,7 @@ const Index = () => {
       }
       
       setSelectedDemo(demoId);
-      setAudioData(`/demo-samples/${sample.filename}`);
+      setAudioData(sample.skipAudio ? null : `/demo-samples/${sample.filename}`);
       setRecordingTime(sample.duration);
       toast.success("Demo Sample Selected", {
         description: `${sample.label} - ${sample.description}`
@@ -111,6 +112,37 @@ const Index = () => {
     setIsAnalyzing(false);
     setProcessingStep(0);
     setRecordingTime(0);
+    setAnalysisResults(null);
+    setSelectedDemo(null);
+  };
+
+  const runDemoAnalysis = async () => {
+    if (!selectedDemo) return;
+    const sample = demoSamples.find((s) => s.id === selectedDemo);
+    if (sample?.isComingSoon) return;
+
+    const curated = DEMO_ANALYSIS_RESULTS[selectedDemo];
+    if (!curated) {
+      toast.error("Demo analysis unavailable", {
+        description: "No curated results for this sample.",
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      if (!sample?.skipAudio && audioData) {
+        const res = await fetch(audioData);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      }
+      handleAnalysisComplete(curated);
+    } catch (e) {
+      console.error(e);
+      toast.error("Demo analysis failed", {
+        description: e instanceof Error ? e.message : "Could not load the demo audio file.",
+      });
+      setIsAnalyzing(false);
+    }
   };
 
   return (
@@ -312,13 +344,11 @@ const Index = () => {
                             <div className="flex items-center gap-2 mb-1">
                               <div className={cn(
                                 "w-2 h-2 rounded-full",
-                                sample.isComingSoon ? "bg-gray-500" :
-                                sample.severity === "None" ? "bg-green-500" :
-                                sample.severity === "Moderate" ? "bg-yellow-500" : "bg-red-500"
+                                sample.isComingSoon ? "bg-gray-500" : severityDotClass(sample.severity)
                               )} />
                               <h4 className="font-bold text-white text-sm">{sample.label}</h4>
                               <span className="text-xs text-muted-foreground ml-auto">
-                                0:{sample.duration.toString().padStart(2, '0')}
+                                {`0:${sample.duration.toString().padStart(2, "0")}`}
                               </span>
                             </div>
                             <p className="text-xs text-muted-foreground mb-1">{sample.description}</p>
@@ -361,7 +391,7 @@ const Index = () => {
                           <div className="flex justify-center pt-2">
                             <Button
                               size="lg"
-                              onClick={() => handleAnalysisComplete(null)}
+                              onClick={runDemoAnalysis}
                               disabled={isAnalyzing || (demoSamples.find(s => s.id === selectedDemo)?.isComingSoon)}
                               className="px-8 py-4 bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70 text-accent-foreground font-semibold shadow-xl transition-all duration-300 disabled:opacity-50 text-base rounded-xl"
                             >
@@ -462,7 +492,12 @@ const Index = () => {
                 </div>
               </div>
               <AnalysisResults 
-                audioUrl={audioData || ""} 
+                audioUrl={
+                  selectedDemo &&
+                  demoSamples.find((s) => s.id === selectedDemo)?.skipAudio
+                    ? undefined
+                    : audioData || undefined
+                } 
                 duration={recordingTime || 45} 
                 selectedDemo={inputMode === 'demo' ? selectedDemo : null}
                 analysisData={analysisResults}

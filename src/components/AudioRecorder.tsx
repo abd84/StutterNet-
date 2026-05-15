@@ -119,12 +119,12 @@ const AudioRecorder = ({ onAudioReady, onAnalysisComplete }: AudioRecorderProps)
       // Enhanced media constraints for better audio quality
       const constraints = {
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 44100,
-          channelCount: 1
-        }
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          sampleRate: 48000,
+          channelCount: 1,
+        },
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -283,7 +283,7 @@ const AudioRecorder = ({ onAudioReady, onAnalysisComplete }: AudioRecorderProps)
     const isDurationValid = await validateAudioDuration(recordedBlob);
     if (!isDurationValid) {
       toast.error("Audio Too Long", {
-        description: "Please record audio under 20 seconds for analysis."
+        description: `Please record audio under ${APP_CONFIG.AUDIO.MAX_ANALYSIS_DURATION_SEC} seconds, or use a smaller file.`,
       });
       return;
     }

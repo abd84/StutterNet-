@@ -117,7 +117,10 @@ const FileUpload = ({ onFileReady, onAnalysisComplete }: FileUploadProps) => {
     } catch (error) {
       console.error("[FileUpload] Analysis error:", error);
       toast.error("Analysis Failed", {
-        description: "Could not analyze audio. Is the inference server running?",
+        description:
+          mode === "gemini"
+            ? "Could not analyze audio. Check your network and Gemini API key."
+            : "Could not analyze audio. Is the inference server running?",
       });
       // Reset so parent doesn't stay stuck on processing overlay
       if (onAnalysisComplete) onAnalysisComplete(null);

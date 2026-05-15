@@ -1,5 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { APP_CONFIG } from '@/config/constants';
+import { measureAudioDurationSeconds, prepareAudioForAnalysis } from './audioWav';
+import { deriveSeverityFromCounts } from './severity';
 
+/** Client-side key is public in the bundle — use a server proxy in production if needed. */
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || 'your-api-key-here');
 
 export interface AudioAnalysisResult {
@@ -222,6 +226,85 @@ function normalisePercents(types: Array<{ count: number; percent: number }>, tot
   return normed;
 }
 
+async function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const comma = dataUrl.indexOf(',');
+      resolve(comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl);
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('FileReader failed'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+const TYPE_BUCKETS: { idx: number; keywords: string[] }[] = [
+  { idx: 0, keywords: ['syllable level', 'syllable', 'حرف سطح', 'حرف'] },
+  { idx: 1, keywords: ['word level', 'لفظ سطح', 'لفظ'] },
+  { idx: 2, keywords: ['pause / block', 'pause/block', 'pause', 'block', 'وقفہ / رکاوٹ', 'وقفہ', 'رکاوٹ'] },
+];
+
+function extractStutterCounts(rawTypes: Array<Record<string, unknown>>): number[] {
+  if (rawTypes.length === 3) {
+    return rawTypes.map(t => Math.max(0, Math.round(Number(t.count ?? 0))));
+  }
+  const counts = [0, 0, 0];
+  for (const t of rawTypes) {
+    const typeLower = String(t.type ?? '').toLowerCase();
+    const urdu = String(t.urdu ?? '');
+    let bestIdx = -1;
+    let bestLen = -1;
+    for (const { idx, keywords } of TYPE_BUCKETS) {
+      for (const kw of keywords) {
+        if (kw.length <= bestLen) continue;
+        if (typeLower.includes(kw.toLowerCase()) || urdu.includes(kw)) {
+          bestLen = kw.length;
+          bestIdx = idx;
+        }
+      }
+    }
+    if (bestIdx >= 0) {
+      counts[bestIdx] += Math.max(0, Math.round(Number(t.count ?? 0)));
+    }
+  }
+  return counts;
+}
+
+function normaliseHighlightedWords(
+  raw: unknown[] | undefined,
+  transcript: string,
+): number[] {
+  if (!raw || raw.length === 0) return [];
+  if (typeof raw[0] === 'number') {
+    return (raw as number[])
+      .map(n => Math.round(Number(n)))
+      .filter(n => !Number.isNaN(n) && n >= 0);
+  }
+  const tokens = transcript.trim().split(/\s+/).filter(Boolean);
+  const set = new Set<number>();
+  for (const item of raw) {
+    if (item === null || typeof item !== 'object') continue;
+    const o = item as Record<string, unknown>;
+    const add = (idx: number) => {
+      if (!Number.isNaN(idx) && idx >= 0 && idx < tokens.length) set.add(idx);
+    };
+    if (o.disfluent === true && typeof o.index === 'number') add(Math.round(o.index));
+    else if (o.disfluent === true && typeof o.position === 'number') add(Math.round(o.position));
+    else if (typeof o.wordIndex === 'number') add(Math.round(o.wordIndex));
+    else if (typeof o.index === 'number') add(Math.round(o.index));
+    else if (typeof o.word === 'string') {
+      const w = o.word.trim();
+      const at = tokens.findIndex(tok => {
+        const bare = tok.replace(/^\*+|\*+$/g, '');
+        return bare === w || tok === w || tok === `*${w}*` || bare.includes(w);
+      });
+      if (at >= 0) set.add(at);
+    }
+  }
+  return Array.from(set).sort((a, b) => a - b);
+}
+
 // ─── Main export ────────────────────────────────────────────────────────────
 
 export const analyzeAudioWithGemini = async (audioBlob: Blob): Promise<AudioAnalysisResult> => {
@@ -233,19 +316,24 @@ export const analyzeAudioWithGemini = async (audioBlob: Blob): Promise<AudioAnal
       throw new Error('Gemini API key not configured. Set VITE_GEMINI_API_KEY in .env.local');
     }
 
-    // Convert blob → base64 (chunked to avoid stack overflow)
-    const audioBuffer = await audioBlob.arrayBuffer();
-    const uint8Array = new Uint8Array(audioBuffer);
-    let binary = '';
-    const chunkSize = 8192;
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      binary += String.fromCharCode(...uint8Array.subarray(i, i + chunkSize));
+    const maxBytes = APP_CONFIG.AUDIO.MAX_UPLOAD_BYTES;
+    if (audioBlob.size > maxBytes) {
+      throw new Error(`Audio too large (max ${Math.round(maxBytes / (1024 * 1024))} MB).`);
     }
-    const audioBase64 = btoa(binary);
 
-    const safeMimeType = audioBlob.type?.startsWith('audio/') ? audioBlob.type : 'audio/webm;codecs=opus';
+    const { wavBlob, durationSec } = await prepareAudioForAnalysis(audioBlob);
+    const maxDur = APP_CONFIG.AUDIO.MAX_ANALYSIS_DURATION_SEC;
+    if (!Number.isFinite(durationSec) || durationSec <= 0) {
+      throw new Error('Could not decode audio — unsupported or corrupt file.');
+    }
+    if (durationSec > maxDur) {
+      throw new Error(`Audio longer than ${maxDur} seconds.`);
+    }
 
-    console.log('[Gemini] Audio encoded, length:', audioBase64.length);
+    const audioBase64 = await blobToBase64(wavBlob);
+    const mimeType = 'audio/wav';
+
+    console.log('[Gemini] WAV prepared:', wavBlob.size, 'bytes,', durationSec.toFixed(2), 's, base64 length:', audioBase64.length);
 
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-pro',
@@ -260,7 +348,7 @@ export const analyzeAudioWithGemini = async (audioBlob: Blob): Promise<AudioAnal
           contents: [{
             role: 'user',
             parts: [
-              { inlineData: { mimeType: safeMimeType, data: audioBase64 } },
+              { inlineData: { mimeType: mimeType, data: audioBase64 } },
               { text: ANALYSIS_PROMPT },
             ],
           }],
@@ -299,71 +387,56 @@ export const analyzeAudioWithGemini = async (audioBlob: Blob): Promise<AudioAnal
     // ── Normalise numeric fields ─────────────────────────────────────────────
     const totalDisfluency = Math.round(Number(analysis.disfluencyCount ?? 0));
 
-    // severityScore: model may return 0-1 float or 0-100 int
-    let severityScore = Number(analysis.severityScore ?? 0);
-    if (severityScore <= 1 && severityScore > 0) severityScore = Math.round(severityScore * 100);
-    else severityScore = Math.round(severityScore);
-
-    // confidence: same ambiguity
+    // confidence: model may return 0-1 float or 0-100 int
     let confidence = Number(analysis.confidence ?? 0);
     if (confidence <= 1 && confidence > 0) confidence = Math.round(confidence * 100);
     else confidence = Math.round(confidence);
 
-    // ── Normalise highlightedWords ───────────────────────────────────────────
-    // Model may return: [0,1] integers OR [{word,disfluent}] objects
-    let highlightedWords: number[] = [];
-    if (Array.isArray(analysis.highlightedWords)) {
-      const raw = analysis.highlightedWords as unknown[];
-      if (raw.length > 0 && typeof raw[0] === 'number') {
-        highlightedWords = raw as number[];
-      } else if (raw.length > 0 && typeof raw[0] === 'object') {
-        // Build index from transcript words
-        const words = String(analysis.transcript ?? '').split(/\s+/);
-        highlightedWords = (raw as Array<{ word?: string; disfluent?: boolean }>)
-          .map((item, i) => item.disfluent ? i : -1)
-          .filter(i => i >= 0)
-          .filter(i => i < words.length);
-      }
-    }
+    const transcript = String(analysis.transcript ?? '');
+    const totalWords = Math.max(0, Math.round(Number(analysis.totalWords ?? 0)));
 
-    // ── Normalise stutterTypes ───────────────────────────────────────────────
-    // Model may use different type names — match by keyword
+    // ── highlightedWords ─────────────────────────────────────────────────────
+    const highlightedWords = Array.isArray(analysis.highlightedWords)
+      ? normaliseHighlightedWords(analysis.highlightedWords as unknown[], transcript)
+      : [];
+
+    // ── stutterTypes counts ───────────────────────────────────────────────────
     const COLOURS = ['bg-primary', 'bg-accent', 'bg-secondary'];
     const DEFAULTS = [
-      { type: 'Syllable Level',      urdu: 'حرف سطح',      keywords: ['syllable', 'حرف سطح', 'حرف'] },
-      { type: 'Word Level',          urdu: 'لفظ سطح',      keywords: ['word level', 'word', 'لفظ سطح', 'لفظ'] },
-      { type: 'Pause / Block Level', urdu: 'وقفہ / رکاوٹ', keywords: ['pause', 'block', 'وقفہ', 'رکاوٹ'] },
+      { type: 'Syllable Level',      urdu: 'حرف سطح' },
+      { type: 'Word Level',          urdu: 'لفظ سطح' },
+      { type: 'Pause / Block Level', urdu: 'وقفہ / رکاوٹ' },
     ];
     const rawTypes = Array.isArray(analysis.stutterTypes)
       ? (analysis.stutterTypes as Array<Record<string, unknown>>)
       : [];
 
-    const matchedCounts = DEFAULTS.map(def => {
-      const match = rawTypes.find(t =>
-        def.keywords.some(kw =>
-          String(t.type ?? '').toLowerCase().includes(kw) ||
-          String(t.urdu ?? '').includes(kw)
-        )
-      );
-      return match ? Math.round(Number(match.count ?? 0)) : 0;
-    });
+    const matchedCounts = extractStutterCounts(rawTypes);
 
-    // Re-derive totalDisfluency from matched counts if model's sum differs
-    const countSum = matchedCounts.reduce((a, b) => a + b, 0);
+    let s = matchedCounts[0];
+    let w = matchedCounts[1];
+    let p = matchedCounts[2];
+    const countSum = s + w + p;
     const effectiveTotal = countSum > 0 ? countSum : totalDisfluency;
+    if (countSum === 0 && totalDisfluency > 0) {
+      s = totalDisfluency;
+    }
+
+    const severityScore = deriveSeverityFromCounts(s, w, p, totalWords);
+
     const normPercents = normalisePercents(
-      matchedCounts.map(count => ({ count, percent: 0 })),
+      [s, w, p].map(count => ({ count, percent: 0 })),
       effectiveTotal,
     );
 
     const stutterTypes = DEFAULTS.map((def, i) => ({
       type: def.type, urdu: def.urdu,
-      count: matchedCounts[i], percent: normPercents[i], color: COLOURS[i],
+      count: [s, w, p][i], percent: normPercents[i], color: COLOURS[i],
     }));
 
     const finalResult: AudioAnalysisResult = {
-      transcript:      String(analysis.transcript ?? ''),
-      totalWords:      Math.round(Number(analysis.totalWords ?? 0)),
+      transcript,
+      totalWords,
       disfluencyCount: effectiveTotal,
       severityScore,
       confidence,
@@ -393,8 +466,23 @@ export const analyzeAudioWithGemini = async (audioBlob: Blob): Promise<AudioAnal
   }
 };
 
-export const validateAudioDuration = (audioBlob: Blob): Promise<boolean> => {
-  // Simple validation - just check if audio exists
-  console.log('📏 Validating audio:', audioBlob.size, 'bytes');
-  return Promise.resolve(true);
+export const validateAudioDuration = async (audioBlob: Blob): Promise<boolean> => {
+  const maxBytes = APP_CONFIG.AUDIO.MAX_UPLOAD_BYTES;
+  if (audioBlob.size === 0) {
+    console.warn('[Gemini] validate: empty blob');
+    return false;
+  }
+  if (audioBlob.size > maxBytes) {
+    console.warn('[Gemini] validate: blob too large', audioBlob.size);
+    return false;
+  }
+  try {
+    const maxDur = APP_CONFIG.AUDIO.MAX_ANALYSIS_DURATION_SEC;
+    const durationSec = await measureAudioDurationSeconds(audioBlob);
+    console.log('📏 Validating audio:', audioBlob.size, 'bytes,', durationSec.toFixed(2), 's');
+    return Number.isFinite(durationSec) && durationSec > 0 && durationSec <= maxDur;
+  } catch {
+    console.warn('[Gemini] validate: decode failed');
+    return false;
+  }
 };

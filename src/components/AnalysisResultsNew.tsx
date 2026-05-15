@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AudioAnalysisResult } from "@/lib/gemini";
 import { DEMO_ANALYSIS_RESULTS, DEMO_DATASET } from "@/config/constants";
+import { getSeverityLevel } from "@/lib/severity";
 
 interface AnalysisResultsProps {
   audioUrl?: string;
@@ -22,6 +23,7 @@ const AnalysisResults = ({ audioUrl, duration = 45, selectedDemo, analysisData }
 
   // Look up the demo sample metadata (label, stutter subtype) from DEMO_DATASET
   const demoSampleMeta = selectedDemo ? DEMO_DATASET.find(s => s.id === selectedDemo) : null;
+  const canPlayAudio = Boolean(audioUrl) && !demoSampleMeta?.skipAudio;
 
   // Use real analysis data if available, otherwise use demo data or default
   const data = analysisData || (selectedDemo && DEMO_ANALYSIS_RESULTS[selectedDemo]) || {
@@ -97,15 +99,6 @@ const AnalysisResults = ({ audioUrl, duration = 45, selectedDemo, analysisData }
         toast.error("No audio available");
       }
     }
-  };
-
-  // Dynamic severity classification
-  const getSeverityLevel = (score: number) => {
-    if (score === 0) return { label: "No Stuttering", urdu: "کوئی لکنت نہیں", color: "text-green-400" };
-    if (score < 25) return { label: "Very Mild", urdu: "بہت کم", color: "text-green-400" };
-    if (score < 50) return { label: "Mild", urdu: "کم", color: "text-yellow-400" };
-    if (score < 75) return { label: "Moderate", urdu: "درمیانہ", color: "text-orange-400" };
-    return { label: "Severe", urdu: "شدید", color: "text-red-400" };
   };
 
   const severityInfo = getSeverityLevel(severityScore);
@@ -331,25 +324,28 @@ const AnalysisResults = ({ audioUrl, duration = 45, selectedDemo, analysisData }
           <div className="bg-black/20 rounded-xl p-6 border border-white/5 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-primary to-secondary" />
             
-            {/* Audio Player */}
-            <audio ref={audioRef} style={{ display: 'none' }} />
+            {canPlayAudio && (
+              <audio ref={audioRef} style={{ display: 'none' }} />
+            )}
             
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <Button
-                  onClick={handleAudioPlayback}
-                  variant="outline"
-                  size="sm"
-                  className="border-accent/50 text-accent hover:bg-accent/20"
-                >
-                  <Volume2 className="w-4 h-4 mr-2" />
-                  {isPlaying ? "Stop" : "Play"} Original Audio
-                </Button>
-                <div className="text-xs text-muted-foreground">
-                  Verify audio matches transcript
+            {canPlayAudio && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <Button
+                    onClick={handleAudioPlayback}
+                    variant="outline"
+                    size="sm"
+                    className="border-accent/50 text-accent hover:bg-accent/20"
+                  >
+                    <Volume2 className="w-4 h-4 mr-2" />
+                    {isPlaying ? "Stop" : "Play"} Original Audio
+                  </Button>
+                  <div className="text-xs text-muted-foreground">
+                    Verify audio matches transcript
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             
             <p className="text-foreground leading-relaxed text-lg mb-4" dir="rtl" style={{ fontFamily: 'Noto Nastaliq Urdu, serif', lineHeight: '2.5' }}>
               {transcript.split(" ").map((word: string, i: number) => {

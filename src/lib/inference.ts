@@ -1,63 +1,17 @@
 /**
  * inference.ts — unified audio analysis entry point.
- * VITE_INFERENCE_MODE=local  → trained FluentNet via /api/analyze
- * VITE_INFERENCE_MODE=gemini → Google Gemini 2.5 Flash (fallback)
+ * VITE_INFERENCE_MODE=local  → trained FluentNet via /api/analyze (16 kHz mono WAV)
+ * VITE_INFERENCE_MODE=gemini → Google Gemini (same WAV normalisation as local)
  */
 import { analyzeAudioWithGemini, AudioAnalysisResult } from "./gemini";
+import { prepareAudioForAnalysis } from "./audioWav";
 
 const MODE = import.meta.env.VITE_INFERENCE_MODE ?? "local";
 
-/**
- * Convert any browser audio blob (webm, mp4, ogg…) to 16-bit mono WAV
- * using the Web Audio API so soundfile on the server can always read it.
- */
-async function toWav(blob: Blob): Promise<Blob> {
-  const arrayBuffer = await blob.arrayBuffer();
-  const audioCtx = new AudioContext({ sampleRate: 16000 });
-  let decoded: AudioBuffer;
-  try {
-    decoded = await audioCtx.decodeAudioData(arrayBuffer);
-  } finally {
-    audioCtx.close();
-  }
-
-  // Mix down to mono at 16 kHz
-  const numSamples = decoded.length;
-  const numChannels = decoded.numberOfChannels;
-  const pcm = new Float32Array(numSamples);
-  for (let ch = 0; ch < numChannels; ch++) {
-    const chData = decoded.getChannelData(ch);
-    for (let i = 0; i < numSamples; i++) pcm[i] += chData[i];
-  }
-  for (let i = 0; i < numSamples; i++) pcm[i] /= numChannels;
-
-  // Encode as 16-bit PCM WAV
-  const int16 = new Int16Array(numSamples);
-  for (let i = 0; i < numSamples; i++) {
-    int16[i] = Math.max(-32768, Math.min(32767, Math.round(pcm[i] * 32767)));
-  }
-
-  const sr = decoded.sampleRate;
-  const byteRate = sr * 2;
-  const dataSize = int16.byteLength;
-  const buf = new ArrayBuffer(44 + dataSize);
-  const view = new DataView(buf);
-  const write = (off: number, s: string) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
-  write(0, "RIFF"); view.setUint32(4, 36 + dataSize, true);
-  write(8, "WAVE"); write(12, "fmt ");
-  view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
-  view.setUint32(24, sr, true); view.setUint32(28, byteRate, true);
-  view.setUint16(32, 2, true); view.setUint16(34, 16, true);
-  write(36, "data"); view.setUint32(40, dataSize, true);
-  new Int16Array(buf, 44).set(int16);
-
-  return new Blob([buf], { type: "audio/wav" });
-}
-
 async function analyzeWithLocalModel(blob: Blob): Promise<AudioAnalysisResult> {
-  const wav = await toWav(blob);
+  const { wavBlob } = await prepareAudioForAnalysis(blob);
   const form = new FormData();
-  form.append("audio", wav, "recording.wav");
+  form.append("audio", wavBlob, "recording.wav");
   const res = await fetch("/api/analyze", { method: "POST", body: form });
   if (!res.ok) throw new Error(`Server ${res.status}: ${await res.text()}`);
   const d = await res.json();

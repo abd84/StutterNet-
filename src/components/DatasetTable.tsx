@@ -171,7 +171,7 @@ const SampleCard = ({ sample }: { sample: Sample }) => {
 
         {/* Actions */}
         <div className="flex items-center gap-2 flex-wrap">
-          {!sample.isComingSoon && (
+          {!sample.isComingSoon && !sample.skipAudio && (
             <Button
               size="sm"
               variant="outline"
